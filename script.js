@@ -1,3 +1,5 @@
+// start local server with      python3 -m http.server 8000    inside the folder
+
 let state = {
     deck: [],
     hand: [],
@@ -7,7 +9,15 @@ let state = {
     tilesById: {},
     tileId: 0,
     placeholder: null,
-    draggedTile: null
+    draggedTile: null,
+
+    maxDiscards: 3,
+    maxWords: 5,
+    targetScore: 25,
+    currentDiscards: 3,
+    currentWords: 5,
+    round: 1,
+    roundScore: 0
 };
 // Initialize the deck with letters and points
 function initializeDeck() {
@@ -73,6 +83,10 @@ function drawTiles(num) {
 }
 
 function discardTiles() {
+    if (state.currentDiscards <= 0) {
+        alert('No discards left this round.');
+        return;
+    }
     const numTilesToDiscard = state.currentWord.length;
 
     if (numTilesToDiscard === 0) {
@@ -80,17 +94,19 @@ function discardTiles() {
         return;
     }
 
-    // Remove tiles in currentWord from the game (discard them)
     state.currentWord = [];
 
-    // Draw new tiles from the deck
+    state.currentDiscards -= 1;
+
     const newTiles = drawTiles(numTilesToDiscard);
     state.hand = state.hand.concat(newTiles);
 
     renderHand();
     renderCurrentWord();
     checkIfWordIsValid();
+    renderBasicScreen();
 }
+
 
 
 // Create a tile div
@@ -295,17 +311,49 @@ function highlightCurrentWord(isValid) {
 function playWord() {
     const word = state.currentWord.map(tile => tile.letter).join('').toLowerCase();
     if (state.dictionary.has(word)) {
-        alert(`Good job, "${word}" is a word!`);
         const wordScore = state.currentWord.reduce((sum, tile) => sum + tile.points, 0);
+        state.roundScore += wordScore;
         state.score += wordScore;
+        state.currentWords -= 1;
+
+        alert(`Good job, "${word}" is a word worth ${wordScore} points!`);
+
         state.currentWord = [];
         const tilesNeeded = 7 - state.hand.length;
         state.hand = state.hand.concat(drawTiles(tilesNeeded));
-        renderBasicScreen();
+
+        // Check win condition
+        if (state.roundScore >= state.targetScore) {
+            alert(`Congratulations! You've reached the target score of ${state.targetScore} points.`);
+            nextRound();
+        } else if (state.currentWords <= 0) {
+            alert(`Out of words! You didn't reach the target score of ${state.targetScore} points. Game over.`);
+            init();
+        } else {
+            renderBasicScreen();
+        }
+    } else if ("_" in state.currentWord) {
+        console.log("underscore is here _____")
     } else {
         alert(`Sorry, "${word}" is not a valid word.`);
     }
 }
+
+
+function nextRound() {
+    state.round += 1;
+    state.targetScore += 5;
+    state.currentDiscards = state.maxDiscards;
+    state.currentWords = state.maxWords;
+    state.roundScore = 0;
+    state.deck = initializeDeck();
+    state.hand = drawTiles(7);
+    state.currentWord = [];
+
+    renderBasicScreen();
+}
+
+
 
 function renderBasicScreen() {
     const appDiv = document.getElementById('app');
@@ -313,7 +361,13 @@ function renderBasicScreen() {
 
     const scoreDiv = document.createElement('div');
     scoreDiv.id = 'score';
-    scoreDiv.textContent = `Score: ${state.score}`;
+    scoreDiv.innerHTML = `
+        <p>Round: ${state.round}</p>
+        <p>Score: ${state.score}</p>
+        <p>Round Score: ${state.roundScore} / ${state.targetScore}</p>
+        <p>Words Left: ${state.currentWords}</p>
+        <p>Discards Left: ${state.currentDiscards}</p>
+    `;
     appDiv.appendChild(scoreDiv);
 
     const currentWordDiv = document.createElement('div');
@@ -338,7 +392,6 @@ function renderBasicScreen() {
     playWordButton.addEventListener('click', playWord);
     buttonsDiv.appendChild(playWordButton);
 
-    // Added Discard Button
     const discardButton = document.createElement('button');
     discardButton.id = 'discard-button';
     discardButton.textContent = 'Discard';
@@ -349,48 +402,43 @@ function renderBasicScreen() {
     renderCurrentWord();
 }
 
-function loadDictionaryFromFile(file, callback) {
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const text = event.target.result;
-        const wordsArray = text.split('\n').map(word => word.trim().toLowerCase());
-        state.dictionary = new Set(wordsArray);
-        callback();
-    };
-    reader.onerror = function(error) {
-        console.error('Error reading word list:', error);
-        state.dictionary = new Set(); // Use an empty set to prevent errors
-        callback();
-    };
-    reader.readAsText(file);
+
+function loadDictionary(callback) {
+    fetch('words.txt')
+        .then(response => response.text())
+        .then(text => {
+            const wordsArray = text.split('\n').map(word => word.trim().toLowerCase());
+            state.dictionary = new Set(wordsArray);
+            callback();
+        })
+        .catch(error => {
+            console.error('Error loading word list:', error);
+            state.dictionary = new Set(); // Use an empty set to prevent errors
+            callback();
+        });
 }
-
-
 
 function init() {
     const appDiv = document.getElementById('app');
-    appDiv.innerHTML = '<p>Please select the dictionary file to load.</p>';
+    appDiv.innerHTML = '<p>Loading dictionary, please wait...</p>';
 
-    const dictionaryInput = document.createElement('input');
-    dictionaryInput.type = 'file';
-    dictionaryInput.accept = '.txt';
-    dictionaryInput.addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (file) {
-            loadDictionaryFromFile(file, () => {
-                state.deck = initializeDeck();
-                state.hand = drawTiles(7);
-                state.currentWord = [];
-                state.score = 0;
+    loadDictionary(() => {
+        state.deck = initializeDeck();
+        state.hand = drawTiles(7);
+        state.currentWord = [];
+        state.score = 0;
+        state.roundScore = 0;
+        state.maxDiscards = 3;
+        state.maxWords = 5;
+        state.targetScore = 25;
+        state.currentDiscards = state.maxDiscards;
+        state.currentWords = state.maxWords;
+        state.round = 1;
 
-                renderBasicScreen();
-            });
-        } else {
-            console.error('No file selected.');
-        }
+        renderBasicScreen();
     });
-    appDiv.appendChild(dictionaryInput);
 }
+
 
 
 
@@ -453,32 +501,32 @@ window.onload = init;
 
 
 
-const letters = [
-    { letter: 'A', count: 6, points: 1 },
-    { letter: 'B', count: 1, points: 3 },
-    { letter: 'C', count: 1, points: 3 },
-    { letter: 'D', count: 2, points: 2 },
-    { letter: 'E', count: 8, points: 1 },
-    { letter: 'F', count: 1, points: 4 },
-    { letter: 'G', count: 2, points: 2 },
-    { letter: 'H', count: 1, points: 4 },
-    { letter: 'I', count: 5, points: 1 },
-    { letter: 'J', count: 1, points: 8 },
-    { letter: 'K', count: 1, points: 5 },
-    { letter: 'L', count: 3, points: 1 },
-    { letter: 'M', count: 2, points: 3 },
-    { letter: 'N', count: 4, points: 1 },
-    { letter: 'O', count: 6, points: 1 },
-    { letter: 'P', count: 1, points: 3 },
-    { letter: 'Q', count: 1, points: 10 },
-    { letter: 'R', count: 3, points: 1 },
-    { letter: 'S', count: 3, points: 1 },
-    { letter: 'T', count: 4, points: 1 },
-    { letter: 'U', count: 2, points: 1 },
-    { letter: 'V', count: 1, points: 4 },
-    { letter: 'W', count: 1, points: 4 },
-    { letter: 'X', count: 1, points: 8 },
-    { letter: 'Y', count: 1, points: 4 },
-    { letter: 'Z', count: 1, points: 10 },
-    { letter: '_', count: 2, points: 0 } // Blanks
-];
+// const letters = [
+//     { letter: 'A', count: 6, points: 1 },
+//     { letter: 'B', count: 1, points: 3 },
+//     { letter: 'C', count: 1, points: 3 },
+//     { letter: 'D', count: 2, points: 2 },
+//     { letter: 'E', count: 8, points: 1 },
+//     { letter: 'F', count: 1, points: 4 },
+//     { letter: 'G', count: 2, points: 2 },
+//     { letter: 'H', count: 1, points: 4 },
+//     { letter: 'I', count: 5, points: 1 },
+//     { letter: 'J', count: 1, points: 8 },
+//     { letter: 'K', count: 1, points: 5 },
+//     { letter: 'L', count: 3, points: 1 },
+//     { letter: 'M', count: 2, points: 3 },
+//     { letter: 'N', count: 4, points: 1 },
+//     { letter: 'O', count: 6, points: 1 },
+//     { letter: 'P', count: 1, points: 3 },
+//     { letter: 'Q', count: 1, points: 10 },
+//     { letter: 'R', count: 3, points: 1 },
+//     { letter: 'S', count: 3, points: 1 },
+//     { letter: 'T', count: 4, points: 1 },
+//     { letter: 'U', count: 2, points: 1 },
+//     { letter: 'V', count: 1, points: 4 },
+//     { letter: 'W', count: 1, points: 4 },
+//     { letter: 'X', count: 1, points: 8 },
+//     { letter: 'Y', count: 1, points: 4 },
+//     { letter: 'Z', count: 1, points: 10 },
+//     { letter: '_', count: 2, points: 0 } // Blanks
+// ];
