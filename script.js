@@ -47,7 +47,7 @@ function initializeDeck() {
         { letter: 'X', count: 1, points: 8 },
         { letter: 'Y', count: 1, points: 4 },
         { letter: 'Z', count: 1, points: 10 },
-        { letter: '_', count: 2, points: 0 } // Blanks
+        { letter: '_', count: 30, points: 0 } // Blanks
     ];
 
     let deck = [];
@@ -288,14 +288,63 @@ function renderCurrentWord() {
     });
 }
 
+// Modified Function: isWildcardWordValid(word)
+// Modified Function: getValidWordWithWildcards(word)
+function getValidWordWithWildcards(word) {
+    const letters = 'abcdefghijklmnopqrstuvwxyz';
+
+    function helper(currentWord, index) {
+        if (index >= currentWord.length) {
+            // Base case: reached the end of the word
+            if (state.dictionary.has(currentWord)) {
+                return currentWord;
+            } else {
+                return null;
+            }
+        }
+
+        if (currentWord[index] !== '_') {
+            // If current character is not a blank, move to next character
+            return helper(currentWord, index + 1);
+        } else {
+            // If current character is a blank, try replacing it with all letters
+            for (let i = 0; i < letters.length; i++) {
+                const letter = letters[i];
+                const newWordArray = currentWord.split('');
+                newWordArray[index] = letter;
+                const newWord = newWordArray.join('');
+                const result = helper(newWord, index + 1);
+                if (result) {
+                    // Found a valid word
+                    return result;
+                }
+            }
+            // No valid words found by replacing this blank
+            return null;
+        }
+    }
+
+    return helper(word.toLowerCase(), 0);
+}
+
+// Changed Function: checkIfWordIsValid()
 function checkIfWordIsValid() {
     const word = state.currentWord.map(tile => tile.letter).join('').toLowerCase();
     if (state.dictionary.has(word)) {
         highlightCurrentWord(true);
+    } else if (word.includes('_')) {
+        const validWord = getValidWordWithWildcards(word);
+        if (validWord) {
+            highlightCurrentWord(true);
+        } else {
+            highlightCurrentWord(false);
+        }
     } else {
         highlightCurrentWord(false);
     }
 }
+
+
 
 function highlightCurrentWord(isValid) {
     const currentWordDiv = document.getElementById('current-word');
@@ -308,15 +357,24 @@ function highlightCurrentWord(isValid) {
     }
 }
 
+// Changed Function: playWord()
 function playWord() {
     const word = state.currentWord.map(tile => tile.letter).join('').toLowerCase();
+    let validWord = null;
+
     if (state.dictionary.has(word)) {
+        validWord = word;
+    } else if (word.includes('_')) {
+        validWord = getValidWordWithWildcards(word);
+    }
+
+    if (validWord) {
         const wordScore = state.currentWord.reduce((sum, tile) => sum + tile.points, 0);
         state.roundScore += wordScore;
         state.score += wordScore;
         state.currentWords -= 1;
 
-        alert(`Good job, "${word}" is a word worth ${wordScore} points!`);
+        alert(`Good job, "${validWord}" is a word worth ${wordScore} points!`);
 
         state.currentWord = [];
         const tilesNeeded = 7 - state.hand.length;
@@ -332,12 +390,11 @@ function playWord() {
         } else {
             renderBasicScreen();
         }
-    } else if ("_" in state.currentWord) {
-        console.log("underscore is here _____")
     } else {
         alert(`Sorry, "${word}" is not a valid word.`);
     }
 }
+
 
 
 function nextRound() {
