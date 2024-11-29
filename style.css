@@ -1,0 +1,59 @@
+#app {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+#score {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+#hand, #current-word {
+    margin: 10px 0;
+    min-height: 60px;
+    border: 1px solid black;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+}
+
+#current-word {
+    border-color: gray;
+}
+
+.tile {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    margin-right: 5px;
+    background-color: beige;
+    border: 1px solid black;
+    position: relative;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.points {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+.valid-word {
+    border-color: green;
+}
+
+.invalid-word {
+    border-color: red;
+}
+
+#play-word-button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+}
