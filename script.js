@@ -1,6 +1,7 @@
 ///     cd Documents/Javascript-Games/scrabble
 // start local server with      python3 -m http.server 8000   
 
+
 let state = {
     deck: [],
     roundDeck: [],
@@ -20,11 +21,11 @@ let state = {
     maxDiscards: 3,
     maxWords: 5,
     maxHandLength: 8,
-    targetScore: 100,
     currentDiscards: 3,
     currentWords: 5,
     round: 1,
     roundScore: 0,
+    currentRelics: [],
 
     currentScreen: 'basic-screen',
 };
@@ -71,6 +72,33 @@ function initializeDeck() {
 
     return shuffle(deck);
 }
+
+const relicsCollection = [
+    {
+        name: "Enchanted Tiles",
+        image: "images/enchanted_tiles.png", // Replace with actual image path
+        description: "Every tile in a played word gets +1 point.",
+        apply: function(wordTiles) {
+            wordTiles.forEach(tile => {
+                const deckTile = state.permanentDeck.find(t => t.id === tile.id);
+                if (deckTile) {
+                    deckTile.points += 1;
+                }
+            });
+        }
+    },
+    {
+        name: "Four-Letter Bonus",
+        image: "images/four_letter_bonus.png", // Replace with actual image path
+        description: "Add +3 to the multiplier when the word is exactly 4 letters long.",
+        apply: function(wordTiles) {
+            if (wordTiles.length === 4) {
+                state.additionalMultiplier += 3; // Initialize this property in state
+            }
+        }
+    },
+    // Add more relics as needed
+];
 
 // Shuffle the deck
 function shuffle(array) {
@@ -303,6 +331,12 @@ function calculateWord(word) {
     let points = word.reduce((sum, tile) => sum + tile.points, 0)
     let mult = word.length
 
+    state.currentRelics.forEach(relic => {
+        if (relic.name === "Four-Letter Bonus" && word.length === 4) {
+            mult += 3;
+        }
+    });
+
     return [points, mult]
 
 }
@@ -320,6 +354,19 @@ function playWord() {
 
     if (validWord) {
         const scoreArray = calculateWord(state.currentWord)
+
+        state.currentRelics.forEach(relic => {
+            if (relic.name == "Enchanted Tiles") {
+                state.currentWord.forEach(tile => {
+                    const deckTile = state.permanentDeck.find(t => t.id === tile.id);
+                    if (deckTile) {
+                        deckTile.points += 1;
+                    }
+                });
+            }
+        });
+
+
         const wordScore = scoreArray[0] * scoreArray[1];
         state.roundScore += wordScore;
         state.score += wordScore;
@@ -334,7 +381,7 @@ function playWord() {
         // Check win condition
         if (state.roundScore >= state.targetScore) {
             alert(`Congratulations! You've reached the target score of ${state.targetScore} points.`);
-            nextRound();
+            chooseRelic();
         } else if (state.currentWords <= 0) {
             alert(`Out of words! You didn't reach the target score of ${state.targetScore} points. Game over.`);
             init();
@@ -346,8 +393,13 @@ function playWord() {
     }
 }
 
-function nextRound() {
+function chooseTile() {
     state.currentScreen = 'choosing-new-tile';
+    renderCurrentScreen();
+}
+
+function chooseRelic() {
+    state.currentScreen = 'choosing-new-relic';
     renderCurrentScreen();
 }
 
@@ -434,10 +486,63 @@ function renderButtonsDiv() {
     return buttonsDiv
 }
 
+function renderRelicsDiv() {
+    if (state.currentRelics.length === 0) {
+        return document.createElement('div'); // Return an empty div if no relics
+    }
+
+    const relicsContainer = document.createElement('div');
+    relicsContainer.id = 'relics-container';
+    relicsContainer.style.display = 'flex';
+    relicsContainer.style.flexWrap = 'wrap';
+    relicsContainer.style.justifyContent = 'center';
+    relicsContainer.style.marginBottom = '10px';
+
+    state.currentRelics.forEach(relic => {
+        const relicDiv = document.createElement('div');
+        relicDiv.classList.add('relic');
+        relicDiv.style.border = '1px solid #ddd';
+        relicDiv.style.borderRadius = '5px';
+        relicDiv.style.padding = '10px';
+        relicDiv.style.margin = '5px';
+        relicDiv.style.width = '150px';
+        relicDiv.style.textAlign = 'center';
+        relicDiv.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.1)';
+        relicDiv.style.backgroundColor = '#f9f9f9';
+
+        const relicImage = document.createElement('img');
+        relicImage.src = relic.image;
+        relicImage.alt = relic.name;
+        relicImage.style.width = '100px';
+        relicImage.style.height = '100px';
+        relicImage.style.objectFit = 'cover';
+        relicImage.style.marginBottom = '10px';
+
+        const relicName = document.createElement('h4');
+        relicName.textContent = relic.name;
+        relicName.style.margin = '5px 0';
+
+        const relicDescription = document.createElement('p');
+        relicDescription.textContent = relic.description;
+        relicDescription.style.fontSize = '12px';
+        relicDescription.style.color = '#555';
+
+        relicDiv.appendChild(relicImage);
+        relicDiv.appendChild(relicName);
+        relicDiv.appendChild(relicDescription);
+
+        relicsContainer.appendChild(relicDiv);
+    });
+
+    return relicsContainer;
+}
+
 
 function renderBasicScreen() {
     const appDiv = document.getElementById('app');
     appDiv.innerHTML = '';
+
+    const relicsDiv = renderRelicsDiv()
 
 
     const scoreDiv = renderStatsDiv()
@@ -445,7 +550,7 @@ function renderBasicScreen() {
     const buttonsDiv = renderButtonsDiv()
     const currentWordDiv = renderCurrentWord()
 
-    appDiv.append(scoreDiv, currentWordDiv, handDiv, buttonsDiv);
+    appDiv.append(relicsDiv, scoreDiv, currentWordDiv, handDiv, buttonsDiv);
 }
 
 function renderCurrentScreen() {
@@ -453,6 +558,8 @@ function renderCurrentScreen() {
         renderBasicScreen();
     } else if (state.currentScreen === 'choosing-new-tile') {
         renderChoosingNewTileScreen();
+    } else if (state.currentScreen === 'choosing-new-relic') {
+        renderChoosingNewRelicScreen();
     }
 }
 
@@ -536,7 +643,7 @@ function renderChoosingNewTileScreen() {
             state.tilesById[newTile.id] = newTile;
 
             // Proceed to the next round
-            nextRoundActual();
+            chooseRelic();
         });
 
         lettersDiv.appendChild(tileDiv);
@@ -549,11 +656,109 @@ function renderChoosingNewTileScreen() {
     skipButton.textContent = 'Skip';
     skipButton.addEventListener('click', () => {
         // Proceed to the next round without adding a tile
+        chooseRelic();
+    });
+
+    appDiv.appendChild(skipButton);
+}
+
+// Implement 'renderChoosingNewRelicScreen' Function
+function renderChoosingNewRelicScreen() {
+    const appDiv = document.getElementById('app');
+    appDiv.innerHTML = '';
+
+    const messageDiv = document.createElement('div');
+    messageDiv.textContent = 'Choose a relic to add to your collection or skip to the next round:';
+    messageDiv.style.marginBottom = '20px';
+    appDiv.appendChild(messageDiv);
+
+    // Select 3 random relics from relicsCollection without duplicates
+    const availableRelics = relicsCollection.filter(relic => !state.currentRelics.some(r => r.name === relic.name));
+    const randomRelics = [];
+    const relicsToChoose = Math.min(3, availableRelics.length);
+    for (let i = 0; i < relicsToChoose; i++) {
+        const index = Math.floor(Math.random() * availableRelics.length);
+        const selectedRelic = availableRelics.splice(index, 1)[0];
+
+        // Clone the relic object to avoid modifying the original
+        randomRelics.push({ ...selectedRelic });
+    }
+
+    // Display the relics as clickable elements
+    const relicsDiv = document.createElement('div');
+    relicsDiv.id = 'relics-choice';
+    relicsDiv.style.display = 'flex';
+    relicsDiv.style.justifyContent = 'space-around';
+    relicsDiv.style.flexWrap = 'wrap';
+    relicsDiv.style.marginBottom = '20px';
+
+    randomRelics.forEach(relic => {
+        const relicDiv = document.createElement('div');
+        relicDiv.classList.add('relic-choice');
+        relicDiv.style.border = '1px solid #ddd';
+        relicDiv.style.borderRadius = '5px';
+        relicDiv.style.padding = '10px';
+        relicDiv.style.width = '150px';
+        relicDiv.style.textAlign = 'center';
+        relicDiv.style.cursor = 'pointer';
+        relicDiv.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.1)';
+        relicDiv.style.margin = '10px';
+        relicDiv.style.backgroundColor = '#fff';
+
+        const relicImage = document.createElement('img');
+        relicImage.src = relic.image;
+        relicImage.alt = relic.name;
+        relicImage.style.width = '100px';
+        relicImage.style.height = '100px';
+        relicImage.style.objectFit = 'cover';
+        relicImage.style.marginBottom = '10px';
+
+        const relicName = document.createElement('h4');
+        relicName.textContent = relic.name;
+        relicName.style.margin = '5px 0';
+
+        const relicDescription = document.createElement('p');
+        relicDescription.textContent = relic.description;
+        relicDescription.style.fontSize = '12px';
+        relicDescription.style.color = '#555';
+
+        relicDiv.appendChild(relicImage);
+        relicDiv.appendChild(relicName);
+        relicDiv.appendChild(relicDescription);
+
+        // Add click event listener to add relic and switch screen
+        relicDiv.addEventListener('click', () => {
+            // Add relic to currentRelics
+            state.currentRelics.push(relic);
+            alert(`You have acquired the relic: ${relic.name}!`);
+
+            // Proceed to the next round
+            nextRoundActual();
+        });
+
+        relicsDiv.appendChild(relicDiv);
+    });
+
+    appDiv.appendChild(relicsDiv);
+
+    // Add a "Skip" button
+    const skipButton = document.createElement('button');
+    skipButton.textContent = 'Skip';
+    skipButton.style.padding = '10px 20px';
+    skipButton.style.fontSize = '16px';
+    skipButton.style.cursor = 'pointer';
+    skipButton.style.border = 'none';
+    skipButton.style.borderRadius = '5px';
+    skipButton.style.backgroundColor = '#ccc';
+    skipButton.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.1)';
+    skipButton.addEventListener('click', () => {
+        // Proceed to the next round without adding any relic
         nextRoundActual();
     });
 
     appDiv.appendChild(skipButton);
 }
+
 
 
 function loadDictionary(callback) {
@@ -586,7 +791,7 @@ function init() {
         state.roundScore = 0;
         state.maxDiscards = 3;
         state.maxWords = 5;
-        state.targetScore = 100;
+        state.targetScore = 20;
         state.currentDiscards = state.maxDiscards;
         state.currentWords = state.maxWords;
         state.round = 1;
