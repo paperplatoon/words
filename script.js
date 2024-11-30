@@ -14,6 +14,7 @@ let state = {
     tileId: 0,
     placeholder: null,
     draggedTile: null,
+    validWord: false,
 
     maxDiscards: 3,
     maxWords: 5,
@@ -106,7 +107,6 @@ function discardTiles() {
     const newTiles = drawTiles(numTilesToDiscard);
     state.hand = state.hand.concat(newTiles);
 
-    renderHand();
     renderCurrentWord();
     checkIfWordIsValid();
     renderBasicScreen();
@@ -140,7 +140,7 @@ function createTile(tile, location) {
             }
             state.hand.push(tile);
 
-            renderHand();
+            renderBasicScreen()
             renderCurrentWord();
             checkIfWordIsValid();
         });
@@ -216,7 +216,7 @@ function selectTile(tile) {
     if (index !== -1) {
         state.hand.splice(index, 1);
         state.currentWord.push(tile);
-        renderHand();
+        renderBasicScreen()
         renderCurrentWord();
         checkIfWordIsValid();
     }
@@ -227,32 +227,33 @@ function unselectTile(tile) {
     if (index !== -1) {
         state.currentWord.splice(index, 1);
         state.hand.push(tile);
-        renderHand();
+        renderBasicScreen()
         renderCurrentWord();
         checkIfWordIsValid();
     }
 }
 
-function renderHand() {
-    const handDiv = document.getElementById('hand');
-    handDiv.innerHTML = '';
+function renderHandDiv() {
+    const handDiv = document.createElement('div');
+    handDiv.id = "hand"
     state.hand.forEach(tile => {
         const tileDiv = createTile(tile, 'hand');
         handDiv.appendChild(tileDiv);
     });
+
+    return handDiv
 }
 
 function renderCurrentWord() {
-    const currentWordDiv = document.getElementById('current-word');
-    currentWordDiv.innerHTML = '';
+    const currentWordDiv = document.createElement('div');
+    currentWordDiv.id = "current-word"
     state.currentWord.forEach(tile => {
         const tileDiv = createTile(tile, 'currentWord');
         currentWordDiv.appendChild(tileDiv);
     });
+    return currentWordDiv
 }
 
-// Modified Function: isWildcardWordValid(word)
-// Modified Function: getValidWordWithWildcards(word)
 function getValidWordWithWildcards(word) {
     const letters = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -282,7 +283,6 @@ function getValidWordWithWildcards(word) {
                     return result;
                 }
             }
-            // No valid words found by replacing this blank
             return null;
         }
     }
@@ -290,42 +290,26 @@ function getValidWordWithWildcards(word) {
     return helper(word.toLowerCase(), 0);
 }
 
-// Changed Function: checkIfWordIsValid()
 function checkIfWordIsValid() {
     const word = state.currentWord.map(tile => tile.letter).join('').toLowerCase();
-    if (state.dictionary.has(word)) {
-        highlightCurrentWord(true);
+    let boolValue = false
+    if (state.dictionary.has(word) && state.currentWord.length > 1) {
+        boolValue = true
     } else if (word.includes('_')) {
         const validWord = getValidWordWithWildcards(word);
         if (validWord) {
-            highlightCurrentWord(true);
-        } else {
-            highlightCurrentWord(false);
+            boolValue = true
         }
-    } else {
-        highlightCurrentWord(false);
     }
+    return boolValue
 }
 
-
-
-function highlightCurrentWord(isValid) {
-    const currentWordDiv = document.getElementById('current-word');
-    if (isValid) {
-        currentWordDiv.classList.add('valid-word');
-        currentWordDiv.classList.remove('invalid-word');
-    } else {
-        currentWordDiv.classList.add('invalid-word');
-        currentWordDiv.classList.remove('valid-word');
-    }
-}
 
 function calculateWord(word) {
     let points = word.reduce((sum, tile) => sum + tile.points, 0)
     let mult = word.length
 
-
-    return points*mult
+    return [points, mult]
 
 }
 
@@ -341,7 +325,8 @@ function playWord() {
     }
 
     if (validWord) {
-        const wordScore = calculateWord(state.currentWord);
+        const scoreArray = calculateWord(state.currentWord)
+        const wordScore = scoreArray[0] * scoreArray[1];
         state.roundScore += wordScore;
         state.score += wordScore;
         state.currentWords -= 1;
@@ -370,9 +355,6 @@ function playWord() {
 
 
 function nextRound() {
-
-    console.log(state.permanentDeck.length)
-    console.log(state.roundDeck.length)
     state.round += 1;
     state.targetScore += 5;
     state.currentDiscards = state.maxDiscards;
@@ -402,41 +384,38 @@ function createTextDiv(string=false, className=false) {
 function renderStatsDiv() {
     const scoreDiv = document.createElement('div');
 
-    const roundDiv = createTextDiv("Round: " + state.round, 'top-row-stats-div')
-    const totalScoreDiv = createTextDiv("Total Score: " + state.score, 'top-row-stats-div')
-    const roundScoreDiv = createTextDiv("Round Score: " + state.roundScore + "/" + state.targetScore, 'top-row-stats-div')
-    const wordsDiv = createTextDiv(state.currentWords + " words", 'top-row-stats-div')
-    const discardsDiv = createTextDiv(state.currentDiscards + " discards", 'top-row-stats-div')
-    const tilesDiv = createTextDiv(state.roundDeck.length + "/" + state.permanentDeck.length, 'top-row-stats-div')
+    const topRowDiv = createTextDiv(false, "stats-row-div");
+    const bottomRowDiv = createTextDiv(false, "stats-row-div");
 
-    scoreDiv.append(roundDiv, totalScoreDiv, roundScoreDiv, wordsDiv, discardsDiv, tilesDiv)
+    const roundDiv = createTextDiv("Round: " + state.round, 'stats-div')
+    const totalScoreDiv = createTextDiv("Total Score: " + state.score, 'stats-div')
+    const roundScoreDiv = createTextDiv("Round Score: " + state.roundScore + "/" + state.targetScore, 'stats-div')
+    const wordsDiv = createTextDiv(state.currentWords + " words", 'stats-div')
+    const discardsDiv = createTextDiv(state.currentDiscards + " discards", 'stats-div')
+    const tilesDiv = createTextDiv(state.roundDeck.length + "/" + state.permanentDeck.length, 'stats-div')
+
+    topRowDiv.append(roundDiv, totalScoreDiv, roundScoreDiv)
+    bottomRowDiv.append(wordsDiv, discardsDiv, tilesDiv)
+
+    let currentWordDiv;
+
+    if (state.currentWord.length > 1 && checkIfWordIsValid()) {
+        const wordScore = calculateWord(state.currentWord)
+        currentWordDiv = createTextDiv(wordScore[0] + " x " + wordScore[1], 'stats-div')     
+    } else {
+        currentWordDiv = createTextDiv()
+    }
+    bottomRowDiv.append(currentWordDiv)
+
+    scoreDiv.append(topRowDiv, bottomRowDiv)
     scoreDiv.id = 'score';
 
     return scoreDiv
 }
 
-
-
-function renderBasicScreen() {
-    const appDiv = document.getElementById('app');
-    appDiv.innerHTML = '';
-
-
-    const scoreDiv = renderStatsDiv()
-    appDiv.appendChild(scoreDiv);
-
-    const currentWordDiv = document.createElement('div');
-    currentWordDiv.id = 'current-word';
-    appDiv.appendChild(currentWordDiv);
-
-    const handDiv = document.createElement('div');
-    handDiv.id = 'hand';
-    appDiv.appendChild(handDiv);
-
-    // Create a container for the buttons
+function renderButtonsDiv() {
     const buttonsDiv = document.createElement('div');
     buttonsDiv.id = 'buttons';
-    appDiv.appendChild(buttonsDiv);
 
     const playWordButton = document.createElement('button');
     playWordButton.id = 'play-word-button';
@@ -450,7 +429,22 @@ function renderBasicScreen() {
     discardButton.addEventListener('click', discardTiles);
     buttonsDiv.appendChild(discardButton);
 
-    renderHand();
+    return buttonsDiv
+}
+
+
+
+function renderBasicScreen() {
+    const appDiv = document.getElementById('app');
+    appDiv.innerHTML = '';
+
+
+    const scoreDiv = renderStatsDiv()
+    const currentWordDiv = renderCurrentWord()
+    const handDiv = renderHandDiv()
+    const buttonsDiv = renderButtonsDiv()
+
+    appDiv.append(scoreDiv, currentWordDiv, handDiv, buttonsDiv);
     renderCurrentWord();
 }
 

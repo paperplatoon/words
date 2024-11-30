@@ -4,18 +4,24 @@
 }
 
 #score {
-    font-size: 20px;
+    display: flex;
+    flex-direction: column;
     width: 95vw;
+    justify-content: center;
+}
+
+.stats-row-div {
+    font-size: 20px;
+    margin-bottom: 1vh;
+    width: 90vw;
     background-color: gray;
-    margin: 2vw;
-    margin-bottom: 10px;
     display: flex;
     flex-direction: row;
     justify-content: space-evenly; 
 }
 
 
-.top-row-stats-div {
+.stats-div {
     display: flex;
 }
 
@@ -79,7 +85,7 @@
     border-color: red;
 }
 
-#play-word-button {
+#play-word-button, #discard-button {
     margin-top: 10px;
     padding: 10px 20px;
     font-size: 12px;
