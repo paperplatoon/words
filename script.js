@@ -18,14 +18,24 @@ let state = {
     draggedTile: null,
     validWord: false,
 
+    discardsLeft: 3,
     maxDiscards: 3,
-    maxWords: 5,
+
+    maxWords: 4,
     maxHandLength: 8,
-    currentDiscards: 3,
+    
+    drawsLeft: 2,
+    maxDraws: 2,
+    numTilesDrawn: 3,
+
     currentWords: 5,
     round: 1,
     roundScore: 0,
     currentRelics: [],
+    playedWords: {},
+
+    additionalMultiplier: 0,
+    additionalStatePoints: 0,
 
     currentScreen: 'basic-screen',
 };
@@ -64,7 +74,11 @@ function initializeDeck() {
 
     letters.forEach(item => {
         for (let i = 0; i < item.count; i++) {
-            const tile = { letter: item.letter, points: item.points, id: state.tileId++ };
+            const tile = { 
+                letter: item.letter, 
+                points: item.points, 
+                additionalPoints: 0,
+                id: state.tileId++ };
             deck.push(tile);
             state.tilesById[tile.id] = tile;
         }
@@ -73,32 +87,126 @@ function initializeDeck() {
     return shuffle(deck);
 }
 
+const GameEvents = {
+    ON_WORD_PLAY: 'onWordPlay',
+    ON_DISCARD: 'onDiscard',
+    ON_CALCULATE_WORD: 'onCalculateWord',
+    ON_RELIC_ACQUIRED: 'onRelicAcquired',
+    // Add more events as needed
+};
+
+function dispatchEvent(eventName, ...args) {
+    state.currentRelics.forEach(relic => {
+        if (relic.handlers && typeof relic.handlers[eventName] === 'function') {
+            relic.handlers[eventName](...args);
+        }
+    });
+}
+
+
+
 const relicsCollection = [
     {
         name: "Enchanted Tiles",
         image: "images/enchanted_tiles.png", // Replace with actual image path
-        description: "Every tile in a played word gets +1 point.",
-        apply: function(wordTiles) {
-            wordTiles.forEach(tile => {
-                const deckTile = state.permanentDeck.find(t => t.id === tile.id);
-                if (deckTile) {
-                    deckTile.points += 1;
-                }
-            });
+        description: "Every tile in a played word gets +1 added to its points.",
+        handlers: {
+            [GameEvents.ON_WORD_PLAY]: function(wordTiles, word) {
+                wordTiles.forEach(tile => {
+                    if (tile.letter !== '_') { // Ensure blanks are not affected
+                        const deckTile = state.permanentDeck.find(t => t.id === tile.id);
+                        if (deckTile) {
+                            deckTile.points += 1;
+                        }
+                    }
+                });
+            }
         }
     },
     {
         name: "Four-Letter Bonus",
-        image: "images/four_letter_bonus.png", // Replace with actual image path
+        image: "images/four_letter_bonus.png",
         description: "Add +3 to the multiplier when the word is exactly 4 letters long.",
-        apply: function(wordTiles) {
-            if (wordTiles.length === 4) {
-                state.additionalMultiplier += 3; // Initialize this property in state
+        handlers: {
+            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                if (wordTiles.length === 4) {
+                    state.additionalMultiplier += 3;
+                }
             }
         }
     },
-    // Add more relics as needed
+    // New Relics
+    {
+        name: "Sea's Blessing",
+        image: "images/seas_blessing.png",
+        description: "Add +6 to the multiplier if the word contains 'sea'.",
+        handlers: {
+            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word, context) {
+                if (word.includes('sea')) {
+                    state.additionalMultiplier += 5;
+                }
+            }
+        }
+    },
+    {
+        name: "Loyalty Multiplier",
+        image: "images/loyalty_multiplier.png",
+        description: "+5X multiplier, where X is the number of times you've played this word before.",
+        handlers: {
+            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                const count = state.playedWords[word] || 0;
+                if (count > 0) {
+                    state.additionalMultiplier += (count*5);
+                }
+            }
+        }
+    },
+    {
+        name: "Unique Contributor",
+        image: "images/unique_contributor.png",
+        description: "Add +1 point for for each unique word played.",
+        handlers: {
+            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                if (!state.playedWords[word]) {
+                    state.additionalStatePoints += Object.keys(state.playedWords).length;
+                }
+            }
+        }
+    },
+    {
+        name: "Vowel Enchantment",
+        image: "images/vowel_enchantment.png",
+        description: "Vowels are worth +3 additional points.",
+        handlers: {
+            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                const vowels = ['a', 'e', 'i', 'o', 'u'];
+                wordTiles.forEach(tile => {
+                    if (vowels.includes(tile.letter.toLowerCase())) {
+                        tile.additionalPoints += 3; // Add to additionalPoints
+                    }
+                });
+            }
+        }
+    },
+
+    {
+        name: "Consonant Fortification",
+        image: "images/consonant_fortification.png",
+        description: "Non-vowels are worth +2 additional points.",
+        handlers: {
+            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                const vowels = ['a', 'e', 'i', 'o', 'u'];
+                wordTiles.forEach(tile => {
+                    if (!vowels.includes(tile.letter.toLowerCase()) && tile.letter !== '_') {
+                        tile.additionalPoints += 2; // Add to additionalPoints
+                    }
+                });
+            }
+        }
+    },
+
 ];
+
 
 // Shuffle the deck
 function shuffle(array) {
@@ -126,8 +234,21 @@ function drawTiles(num) {
     return drawnTiles;
 }
 
+function drawThreeTiles() {
+    const drawnTiles = [];
+    for (let i = 0; i < state.numTilesDrawn && state.roundDeck.length > 0; i++) {
+        drawnTiles.push(state.roundDeck.pop());
+    }
+
+    if (state.drawsLeft > 0) {
+        state.drawsLeft -= 1;
+    }
+    state.hand = state.hand.concat(drawnTiles);
+    renderCurrentScreen()
+}
+
 function discardTiles() {
-    if (state.currentDiscards <= 0) {
+    if (state.discardsLeft <= 0) {
         alert('No discards left this round.');
         return;
     }
@@ -137,10 +258,11 @@ function discardTiles() {
         alert('No tiles selected to discard.');
         return;
     }
+    dispatchEvent(GameEvents.ON_DISCARD, state.currentWord);
 
     state.currentWord = [];
 
-    state.currentDiscards -= 1;
+    state.discardsLeft -= 1;
 
     const newTiles = drawTiles(numTilesToDiscard);
     state.hand = state.hand.concat(newTiles);
@@ -327,23 +449,30 @@ function checkIfWordIsValid() {
 }
 
 
-function calculateWord(word) {
-    let points = word.reduce((sum, tile) => sum + tile.points, 0)
-    let mult = word.length
-
-    state.currentRelics.forEach(relic => {
-        if (relic.name === "Four-Letter Bonus" && word.length === 4) {
-            mult += 3;
-        }
+function calculateWord(wordTiles) {
+    state.additionalMultiplier = 0;
+    state.currentWord.forEach(tile => {
+        tile.additionalPoints = 0;
     });
+    state.additionalStatePoints = 0;
 
-    return [points, mult]
+    const word = wordTiles.map(tile => tile.letter).join('').toLowerCase();
+    dispatchEvent(GameEvents.ON_CALCULATE_WORD, wordTiles, word);
 
+    let points = wordTiles.reduce((sum, tile) => sum + tile.points + (tile.additionalPoints || 0), 0) + state.additionalStatePoints;
+    let mult = wordTiles.length;
+
+    mult += state.additionalMultiplier;
+
+    return [points, mult];
 }
 
-// Changed Function: playWord()
+
+
+
 function playWord() {
-    const word = state.currentWord.map(tile => tile.letter).join('').toLowerCase();
+    const wordTiles = state.currentWord;
+    const word = wordTiles.map(tile => tile.letter).join('').toLowerCase();
     let validWord = null;
 
     if (state.dictionary.has(word)) {
@@ -352,25 +481,21 @@ function playWord() {
         validWord = getValidWordWithWildcards(word);
     }
 
-    if (validWord) {
-        const scoreArray = calculateWord(state.currentWord)
-
-        state.currentRelics.forEach(relic => {
-            if (relic.name == "Enchanted Tiles") {
-                state.currentWord.forEach(tile => {
-                    const deckTile = state.permanentDeck.find(t => t.id === tile.id);
-                    if (deckTile) {
-                        deckTile.points += 1;
-                    }
-                });
-            }
-        });
-
-
-        const wordScore = scoreArray[0] * scoreArray[1];
+    if (validWord && state.currentWord.length > 1) { // Ensure word length > 1
+        
+        const scoreArray = calculateWord(wordTiles);
+        const wordScore = scoreArray[0] * (scoreArray[1]);
         state.roundScore += wordScore;
         state.score += wordScore;
         state.currentWords -= 1;
+
+        if (state.playedWords[word]) {
+            state.playedWords[word] += 1;
+        } else {
+            state.playedWords[word] = 1;
+        }
+
+        dispatchEvent(GameEvents.ON_WORD_PLAY, wordTiles, word);
 
         alert(`Good job, "${validWord}" is a word worth ${wordScore} points!`);
 
@@ -389,9 +514,10 @@ function playWord() {
             renderBasicScreen();
         }
     } else {
-        alert(`Sorry, "${word}" is not a valid word.`);
+        alert(`Sorry, "${word}" is not a valid word or too short.`);
     }
 }
+
 
 function chooseTile() {
     state.currentScreen = 'choosing-new-tile';
@@ -404,11 +530,15 @@ function chooseRelic() {
 }
 
 function nextRoundActual() {
+    state.permanentDeck.forEach(tile => {
+        tile.additionalPoints = 0;
+    });
     state.currentScreen = 'basic-screen';
     state.round += 1;
-    state.targetScore += 5;
-    state.currentDiscards = state.maxDiscards;
+    state.targetScore += 25;
+    state.discardsLeft = state.maxDiscards;
     state.currentWords = state.maxWords;
+    state.drawsLeft = state.maxDraws
     state.roundScore = 0;
     state.roundDeck = shuffle([...state.permanentDeck]);
     state.hand = drawTiles(state.maxHandLength);
@@ -439,12 +569,13 @@ function renderStatsDiv() {
     const roundDiv = createTextDiv("Round: " + state.round, 'stats-div')
     const totalScoreDiv = createTextDiv("Total Score: " + state.score, 'stats-div')
     const roundScoreDiv = createTextDiv("Round Score: " + state.roundScore + "/" + state.targetScore, 'stats-div')
-    const wordsDiv = createTextDiv(state.currentWords + " words", 'stats-div')
-    const discardsDiv = createTextDiv(state.currentDiscards + " discards", 'stats-div')
-    const tilesDiv = createTextDiv(state.roundDeck.length + "/" + state.permanentDeck.length, 'stats-div')
+    const wordsDiv = createTextDiv(state.currentWords + " Words", 'stats-div')
+    const discardsDiv = createTextDiv(state.discardsLeft + " Discards", 'stats-div')
+    const drawsDiv = createTextDiv(state.drawsLeft + " Draws", 'stats-div')
+    const tilesDiv = createTextDiv("Tiles left: " + state.roundDeck.length + "/" + state.permanentDeck.length, 'stats-div')
 
     topRowDiv.append(roundDiv, totalScoreDiv, roundScoreDiv)
-    bottomRowDiv.append(wordsDiv, discardsDiv, tilesDiv)
+    bottomRowDiv.append(wordsDiv, discardsDiv, drawsDiv, tilesDiv)
 
     let currentWordDiv;
 
@@ -466,22 +597,33 @@ function renderButtonsDiv() {
     const buttonsDiv = document.createElement('div');
     buttonsDiv.id = 'buttons';
 
-    const playWordButton = document.createElement('button');
-    playWordButton.id = 'play-word-button';
+    const playWordButton = document.createElement('div');
+    playWordButton.classList.add('default-button');
     playWordButton.textContent = 'Play Word';
     playWordButton.addEventListener('click', playWord);
+    buttonsDiv.append(playWordButton)
 
-    const discardButton = document.createElement('button');
-    discardButton.id = 'discard-button';
+    const discardButton = document.createElement('div');
+    discardButton.classList.add('default-button');
     discardButton.textContent = 'Discard';
     discardButton.addEventListener('click', discardTiles);
+    if (state.discardsLeft > 0) {
+        buttonsDiv.append(discardButton)
+    }
 
-    const shuffleButton = document.createElement('button');
-    shuffleButton.id = 'shuffle-button';
+    const drawButton = document.createElement('div');
+    drawButton.classList.add('default-button');
+    drawButton.textContent = 'Draw ' + state.numTilesDrawn + ' tiles';
+    drawButton.addEventListener('click', drawThreeTiles);
+    if (state.drawsLeft > 0) {
+        buttonsDiv.append(drawButton)
+    }
+
+    const shuffleButton = document.createElement('div');
+    shuffleButton.classList.add('default-button');
     shuffleButton.textContent = 'Shuffle';
     shuffleButton.addEventListener('click', shuffleHand);
-
-    buttonsDiv.append(playWordButton, discardButton, shuffleButton);
+    buttonsDiv.append(shuffleButton);
 
     return buttonsDiv
 }
@@ -643,7 +785,7 @@ function renderChoosingNewTileScreen() {
             state.tilesById[newTile.id] = newTile;
 
             // Proceed to the next round
-            chooseRelic();
+            nextRoundActual();
         });
 
         lettersDiv.appendChild(tileDiv);
@@ -656,7 +798,7 @@ function renderChoosingNewTileScreen() {
     skipButton.textContent = 'Skip';
     skipButton.addEventListener('click', () => {
         // Proceed to the next round without adding a tile
-        chooseRelic();
+        nextRoundActual();
     });
 
     appDiv.appendChild(skipButton);
@@ -730,10 +872,11 @@ function renderChoosingNewRelicScreen() {
         relicDiv.addEventListener('click', () => {
             // Add relic to currentRelics
             state.currentRelics.push(relic);
+            dispatchEvent(GameEvents.ON_RELIC_ACQUIRED, relic);
             alert(`You have acquired the relic: ${relic.name}!`);
 
             // Proceed to the next round
-            nextRoundActual();
+            chooseTile();
         });
 
         relicsDiv.appendChild(relicDiv);
@@ -744,16 +887,10 @@ function renderChoosingNewRelicScreen() {
     // Add a "Skip" button
     const skipButton = document.createElement('button');
     skipButton.textContent = 'Skip';
-    skipButton.style.padding = '10px 20px';
-    skipButton.style.fontSize = '16px';
-    skipButton.style.cursor = 'pointer';
-    skipButton.style.border = 'none';
-    skipButton.style.borderRadius = '5px';
-    skipButton.style.backgroundColor = '#ccc';
-    skipButton.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.1)';
+    skipButton.classList.add("default-button")
     skipButton.addEventListener('click', () => {
         // Proceed to the next round without adding any relic
-        nextRoundActual();
+        chooseTile();
     });
 
     appDiv.appendChild(skipButton);
@@ -790,10 +927,11 @@ function init() {
         state.score = 0;
         state.roundScore = 0;
         state.maxDiscards = 3;
-        state.maxWords = 5;
-        state.targetScore = 20;
-        state.currentDiscards = state.maxDiscards;
+        state.maxWords = 4;
+        state.targetScore = 100;
+        state.discardsLeft = state.maxDiscards;
         state.currentWords = state.maxWords;
+        state.playedWords = {}
         state.round = 1;
         state.currentScreen = 'basic-screen';
 
