@@ -25,7 +25,7 @@
     display: flex;
 }
 
-#hand, #current-word {
+#hand, #current-word, #letters-choice {
     margin: 10px 0;
     min-height: 60px;
     border: 1px solid black;
@@ -85,7 +85,7 @@
     border-color: red;
 }
 
-#play-word-button, #discard-button {
+#play-word-button, #discard-button, #shuffle-button {
     margin-top: 10px;
     padding: 10px 20px;
     font-size: 12px;

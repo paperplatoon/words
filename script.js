@@ -9,7 +9,8 @@ let state = {
     hand: [],
     currentWord: [],
     score: 0,
-    dictionary: ["apple", "banana", "orange", "grape", "pear", "melon"], // Sample dictionary words
+
+    dictionary: ["apple", "banana",],
     tilesById: {},
     tileId: 0,
     placeholder: null,
@@ -23,7 +24,9 @@ let state = {
     currentDiscards: 3,
     currentWords: 5,
     round: 1,
-    roundScore: 0
+    roundScore: 0,
+
+    currentScreen: 'basic-screen',
 };
 // Initialize the deck with letters and points
 function initializeDeck() {
@@ -79,6 +82,13 @@ function shuffle(array) {
     return array;
 }
 
+function shuffleHand() {
+    let newArrayOrder = shuffle([...state.hand])
+    state.hand = newArrayOrder
+    console.log('new hand is ', state.hand)
+    renderCurrentScreen()
+}
+
 // Draw tiles from the deck
 function drawTiles(num) {
     const drawnTiles = [];
@@ -107,9 +117,7 @@ function discardTiles() {
     const newTiles = drawTiles(numTilesToDiscard);
     state.hand = state.hand.concat(newTiles);
 
-    renderCurrentWord();
-    checkIfWordIsValid();
-    renderBasicScreen();
+    renderCurrentScreen()
 }
 
 
@@ -140,9 +148,7 @@ function createTile(tile, location) {
             }
             state.hand.push(tile);
 
-            renderBasicScreen()
-            renderCurrentWord();
-            checkIfWordIsValid();
+            renderCurrentScreen()
         });
     }
 
@@ -165,7 +171,6 @@ function drop(event) {
     event.preventDefault();
     const targetTile = event.target;
 
-
     if (targetTile.classList.contains('tile') && targetTile !== state.draggedTile) {
         const currentWordDiv = document.getElementById('current-word');
         const tiles = Array.from(currentWordDiv.children);
@@ -174,41 +179,34 @@ function drop(event) {
         const targetIndex = tiles.indexOf(targetTile);
 
         if (draggedIndex !== -1 && targetIndex !== -1) {
+            currentWordDiv.removeChild(state.draggedTile);
+
             if (draggedIndex < targetIndex) {
                 currentWordDiv.insertBefore(state.draggedTile, targetTile.nextSibling);
-                currentWordDiv.insertBefore(targetTile, state.draggedTile);
             } else {
-                currentWordDiv.insertBefore(targetTile, state.draggedTile.nextSibling);
                 currentWordDiv.insertBefore(state.draggedTile, targetTile);
             }
 
-            const temp = state.currentWord[draggedIndex];
-            state.currentWord[draggedIndex] = state.currentWord[targetIndex];
-            state.currentWord[targetIndex] = temp;
-
-            checkIfWordIsValid();
+            updateCurrentWordOrder();
         }
     }
 }
-
-
-
-
 
 function updateCurrentWordOrder() {
     const currentWordDiv = document.getElementById('current-word');
     const tiles = Array.from(currentWordDiv.children);
     state.currentWord = [];
     tiles.forEach(tileDiv => {
-        if (tileDiv.classList.contains('placeholder')) return; // Skip placeholder
+        if (tileDiv.classList.contains('placeholder')) return;
         const id = parseInt(tileDiv.dataset.id);
         const tile = state.tilesById[id];
         if (tile) {
             state.currentWord.push(tile);
         }
     });
-    checkIfWordIsValid();
+    renderCurrentScreen()
 }
+
 
 
 function selectTile(tile) {
@@ -216,9 +214,7 @@ function selectTile(tile) {
     if (index !== -1) {
         state.hand.splice(index, 1);
         state.currentWord.push(tile);
-        renderBasicScreen()
-        renderCurrentWord();
-        checkIfWordIsValid();
+        renderCurrentScreen()
     }
 }
 
@@ -227,9 +223,7 @@ function unselectTile(tile) {
     if (index !== -1) {
         state.currentWord.splice(index, 1);
         state.hand.push(tile);
-        renderBasicScreen()
-        renderCurrentWord();
-        checkIfWordIsValid();
+        renderCurrentScreen()
     }
 }
 
@@ -352,20 +346,23 @@ function playWord() {
     }
 }
 
-
-
 function nextRound() {
+    state.currentScreen = 'choosing-new-tile';
+    renderCurrentScreen();
+}
+
+function nextRoundActual() {
+    state.currentScreen = 'basic-screen';
     state.round += 1;
     state.targetScore += 5;
     state.currentDiscards = state.maxDiscards;
     state.currentWords = state.maxWords;
     state.roundScore = 0;
-    newDeck = shuffle(state.permanentDeck)
-    state.roundDeck = [...newDeck];
+    state.roundDeck = shuffle([...state.permanentDeck]);
     state.hand = drawTiles(state.maxHandLength);
     state.currentWord = [];
 
-    renderBasicScreen();
+    renderCurrentScreen();
 }
 
 function createTextDiv(string=false, className=false) {
@@ -421,17 +418,21 @@ function renderButtonsDiv() {
     playWordButton.id = 'play-word-button';
     playWordButton.textContent = 'Play Word';
     playWordButton.addEventListener('click', playWord);
-    buttonsDiv.appendChild(playWordButton);
 
     const discardButton = document.createElement('button');
     discardButton.id = 'discard-button';
     discardButton.textContent = 'Discard';
     discardButton.addEventListener('click', discardTiles);
-    buttonsDiv.appendChild(discardButton);
+
+    const shuffleButton = document.createElement('button');
+    shuffleButton.id = 'shuffle-button';
+    shuffleButton.textContent = 'Shuffle';
+    shuffleButton.addEventListener('click', shuffleHand);
+
+    buttonsDiv.append(playWordButton, discardButton, shuffleButton);
 
     return buttonsDiv
 }
-
 
 
 function renderBasicScreen() {
@@ -440,12 +441,118 @@ function renderBasicScreen() {
 
 
     const scoreDiv = renderStatsDiv()
-    const currentWordDiv = renderCurrentWord()
     const handDiv = renderHandDiv()
     const buttonsDiv = renderButtonsDiv()
+    const currentWordDiv = renderCurrentWord()
 
     appDiv.append(scoreDiv, currentWordDiv, handDiv, buttonsDiv);
-    renderCurrentWord();
+}
+
+function renderCurrentScreen() {
+    if (state.currentScreen === 'basic-screen') {
+        renderBasicScreen();
+    } else if (state.currentScreen === 'choosing-new-tile') {
+        renderChoosingNewTileScreen();
+    }
+}
+
+function renderChoosingNewTileScreen() {
+    const appDiv = document.getElementById('app');
+    appDiv.innerHTML = '';
+
+    const messageDiv = document.createElement('div');
+    messageDiv.textContent = 'Choose a new tile to add to your deck or skip to the next round:';
+    appDiv.appendChild(messageDiv);
+
+    // Potential letters to choose from
+    const potentialLetters = [
+        { letter: 'A', points: 1 },
+        { letter: 'B', points: 3 },
+        { letter: 'C', points: 3 },
+        { letter: 'D', points: 2 },
+        { letter: 'E', points: 1 },
+        { letter: 'F', points: 4 },
+        { letter: 'G', points: 2 },
+        { letter: 'H', points: 4 },
+        { letter: 'I', points: 1 },
+        { letter: 'J', points: 8 },
+        { letter: 'K', points: 5 },
+        { letter: 'L', points: 1 },
+        { letter: 'M', points: 3 },
+        { letter: 'N', points: 1 },
+        { letter: 'O', points: 1 },
+        { letter: 'P', points: 3 },
+        { letter: 'R', points: 1 },
+        { letter: 'S', points: 1 },
+        { letter: 'T', points: 1 },
+        { letter: 'U', points: 1 },
+        { letter: 'V', points: 4 },
+        { letter: 'W', points: 4 },
+        { letter: 'X', points: 8 },
+        { letter: 'Y', points: 4 },
+        { letter: 'Z', points: 10 },
+        { letter: '_', points: 0 } // Blanks
+    ];
+
+    // Pick 3 random letters
+    const availableLetters = potentialLetters.slice();
+    const randomLetters = [];
+    for (let i = 0; i < 3; i++) {
+        const index = Math.floor(Math.random() * availableLetters.length);
+        const letterObj = availableLetters.splice(index, 1)[0];
+
+        // Add a random number between 1 and 5 to the points
+        const additionalPoints = Math.floor(Math.random() * 5) + 1;
+        letterObj.points += additionalPoints;
+
+        randomLetters.push(letterObj);
+    }
+
+    // Display the letters as clickable elements
+    const lettersDiv = document.createElement('div');
+    lettersDiv.id = 'letters-choice';
+
+    randomLetters.forEach((letterObj) => {
+        const tileDiv = document.createElement('div');
+        tileDiv.classList.add('tile');
+        tileDiv.textContent = letterObj.letter;
+        tileDiv.dataset.letter = letterObj.letter;
+        tileDiv.dataset.points = letterObj.points;
+
+        const pointsDiv = document.createElement('div');
+        pointsDiv.classList.add('points');
+        pointsDiv.textContent = letterObj.points;
+
+        tileDiv.appendChild(pointsDiv);
+
+        tileDiv.addEventListener('click', () => {
+            // Add the selected letter to the permanent deck
+            const newTile = { 
+                letter: letterObj.letter, 
+                points: letterObj.points, 
+                id: state.tileId++ 
+            };
+            state.permanentDeck.push(newTile);
+            state.tilesById[newTile.id] = newTile;
+
+            // Proceed to the next round
+            nextRoundActual();
+        });
+
+        lettersDiv.appendChild(tileDiv);
+    });
+
+    appDiv.appendChild(lettersDiv);
+
+    // Add a "Skip" button
+    const skipButton = document.createElement('button');
+    skipButton.textContent = 'Skip';
+    skipButton.addEventListener('click', () => {
+        // Proceed to the next round without adding a tile
+        nextRoundActual();
+    });
+
+    appDiv.appendChild(skipButton);
 }
 
 
@@ -483,6 +590,7 @@ function init() {
         state.currentDiscards = state.maxDiscards;
         state.currentWords = state.maxWords;
         state.round = 1;
+        state.currentScreen = 'basic-screen';
 
         renderBasicScreen();
     });
