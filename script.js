@@ -1,7 +1,11 @@
-// start local server with      python3 -m http.server 8000    inside the folder
+///     cd Documents/Javascript-Games/scrabble
+// start local server with      python3 -m http.server 8000   
 
 let state = {
     deck: [],
+    roundDeck: [],
+    roundDiscard: [],
+    permanentDeck: [],
     hand: [],
     currentWord: [],
     score: 0,
@@ -13,7 +17,8 @@ let state = {
 
     maxDiscards: 3,
     maxWords: 5,
-    targetScore: 25,
+    maxHandLength: 8,
+    targetScore: 100,
     currentDiscards: 3,
     currentWords: 5,
     round: 1,
@@ -22,32 +27,32 @@ let state = {
 // Initialize the deck with letters and points
 function initializeDeck() {
     const letters = [
-        { letter: 'A', count: 5, points: 1 },
+        { letter: 'A', count: 4, points: 1 },
         { letter: 'B', count: 1, points: 3 },
         { letter: 'C', count: 1, points: 3 },
-        { letter: 'D', count: 2, points: 2 },
-        { letter: 'E', count: 6, points: 1 },
+        { letter: 'D', count: 1, points: 2 },
+        { letter: 'E', count: 4, points: 1 },
         { letter: 'F', count: 1, points: 4 },
-        { letter: 'G', count: 1, points: 2 },
+        { letter: 'G', count: 2, points: 2 },
         { letter: 'H', count: 1, points: 4 },
-        { letter: 'I', count: 5, points: 1 },
+        { letter: 'I', count: 3, points: 1 },
         { letter: 'J', count: 1, points: 8 },
         { letter: 'K', count: 1, points: 5 },
-        { letter: 'L', count: 3, points: 1 },
-        { letter: 'M', count: 2, points: 3 },
-        { letter: 'N', count: 4, points: 1 },
-        { letter: 'O', count: 5, points: 1 },
+        { letter: 'L', count: 2, points: 1 },
+        { letter: 'M', count: 1, points: 3 },
+        { letter: 'N', count: 2, points: 1 },
+        { letter: 'O', count: 3, points: 1 },
         { letter: 'P', count: 1, points: 3 },
-        { letter: 'R', count: 3, points: 1 },
-        { letter: 'S', count: 3, points: 1 },
-        { letter: 'T', count: 4, points: 1 },
+        { letter: 'R', count: 2, points: 1 },
+        { letter: 'S', count: 2, points: 1 },
+        { letter: 'T', count: 2, points: 1 },
         { letter: 'U', count: 2, points: 1 },
         { letter: 'V', count: 1, points: 4 },
         { letter: 'W', count: 1, points: 4 },
         { letter: 'X', count: 1, points: 8 },
         { letter: 'Y', count: 1, points: 4 },
         { letter: 'Z', count: 1, points: 10 },
-        { letter: '_', count: 30, points: 0 } // Blanks
+        { letter: '_', count: 2, points: 0 } // Blanks
     ];
 
     let deck = [];
@@ -76,8 +81,8 @@ function shuffle(array) {
 // Draw tiles from the deck
 function drawTiles(num) {
     const drawnTiles = [];
-    for (let i = 0; i < num && state.deck.length > 0; i++) {
-        drawnTiles.push(state.deck.pop());
+    for (let i = 0; i < num && state.roundDeck.length > 0; i++) {
+        drawnTiles.push(state.roundDeck.pop());
     }
     return drawnTiles;
 }
@@ -174,6 +179,7 @@ function drop(event) {
     }
 }
 
+// Changed Function: currentWordDragOver(event)
 function currentWordDragOver(event) {
     event.preventDefault();
 
@@ -182,34 +188,30 @@ function currentWordDragOver(event) {
     const x = event.clientX - rect.left;
 
     let index = 0;
-    let found = false;
 
-    const tiles = Array.from(currentWordDiv.children);
-    tiles.splice(tiles.indexOf(state.placeholder), 1); // Remove placeholder from tiles array if present
+    const tiles = Array.from(currentWordDiv.children).filter(tile => tile !== state.placeholder);
 
     for (let i = 0; i < tiles.length; i++) {
         const tile = tiles[i];
-        if (tile !== state.placeholder) {
-            const tileRect = tile.getBoundingClientRect();
-            const tileX = tile.offsetLeft + tile.offsetWidth / 2;
-            if (x < tileX) {
-                index = i;
-                found = true;
-                break;
-            }
-        }
-    }
+        const tileRect = tile.getBoundingClientRect();
+        const relativeX = tileRect.left - rect.left;
+        const tileCenterX = relativeX + tileRect.width / 2;
 
-    if (!found) {
-        index = tiles.length;
+        if (x < tileCenterX) {
+            index = i;
+            break;
+        }
+
+        index = i + 1;
     }
 
     if (state.placeholder && state.placeholder.parentElement) {
         state.placeholder.parentElement.removeChild(state.placeholder);
     }
 
-    currentWordDiv.insertBefore(state.placeholder, currentWordDiv.children[index]);
+    currentWordDiv.insertBefore(state.placeholder, currentWordDiv.children[index] || null);
 }
+
 
 function currentWordDragLeave(event) {
     if (state.placeholder && state.placeholder.parentElement) {
@@ -357,6 +359,15 @@ function highlightCurrentWord(isValid) {
     }
 }
 
+function calculateWord(word) {
+    let points = word.reduce((sum, tile) => sum + tile.points, 0)
+    let mult = word.length
+
+
+    return points*mult
+
+}
+
 // Changed Function: playWord()
 function playWord() {
     const word = state.currentWord.map(tile => tile.letter).join('').toLowerCase();
@@ -369,7 +380,7 @@ function playWord() {
     }
 
     if (validWord) {
-        const wordScore = state.currentWord.reduce((sum, tile) => sum + tile.points, 0);
+        const wordScore = calculateWord(state.currentWord);
         state.roundScore += wordScore;
         state.score += wordScore;
         state.currentWords -= 1;
@@ -377,7 +388,7 @@ function playWord() {
         alert(`Good job, "${validWord}" is a word worth ${wordScore} points!`);
 
         state.currentWord = [];
-        const tilesNeeded = 7 - state.hand.length;
+        const tilesNeeded = state.maxHandLength - state.hand.length;
         state.hand = state.hand.concat(drawTiles(tilesNeeded));
 
         // Check win condition
@@ -398,16 +409,49 @@ function playWord() {
 
 
 function nextRound() {
+
+    console.log(state.permanentDeck.length)
+    console.log(state.roundDeck.length)
     state.round += 1;
     state.targetScore += 5;
     state.currentDiscards = state.maxDiscards;
     state.currentWords = state.maxWords;
     state.roundScore = 0;
-    state.deck = initializeDeck();
-    state.hand = drawTiles(7);
+    newDeck = shuffle(state.permanentDeck)
+    state.roundDeck = [...newDeck];
+    state.hand = drawTiles(state.maxHandLength);
     state.currentWord = [];
 
     renderBasicScreen();
+}
+
+function createTextDiv(string=false, className=false) {
+    const newDiv = document.createElement('div');
+    if (string) {
+        const newText = document.createElement('p');
+        newText.textContent = string
+        newDiv.append(newText)
+    }
+    if (className) {
+        newDiv.classList.add(className)
+    }
+    return newDiv
+}
+
+function renderStatsDiv() {
+    const scoreDiv = document.createElement('div');
+
+    const roundDiv = createTextDiv("Round: " + state.round, 'top-row-stats-div')
+    const totalScoreDiv = createTextDiv("Total Score: " + state.score, 'top-row-stats-div')
+    const roundScoreDiv = createTextDiv("Round Score: " + state.roundScore + "/" + state.targetScore, 'top-row-stats-div')
+    const wordsDiv = createTextDiv(state.currentWords + " words", 'top-row-stats-div')
+    const discardsDiv = createTextDiv(state.currentDiscards + " discards", 'top-row-stats-div')
+    const tilesDiv = createTextDiv(state.roundDeck.length + "/" + state.permanentDeck.length, 'top-row-stats-div')
+
+    scoreDiv.append(roundDiv, totalScoreDiv, roundScoreDiv, wordsDiv, discardsDiv, tilesDiv)
+    scoreDiv.id = 'score';
+
+    return scoreDiv
 }
 
 
@@ -416,15 +460,8 @@ function renderBasicScreen() {
     const appDiv = document.getElementById('app');
     appDiv.innerHTML = '';
 
-    const scoreDiv = document.createElement('div');
-    scoreDiv.id = 'score';
-    scoreDiv.innerHTML = `
-        <p>Round: ${state.round}</p>
-        <p>Score: ${state.score}</p>
-        <p>Round Score: ${state.roundScore} / ${state.targetScore}</p>
-        <p>Words Left: ${state.currentWords}</p>
-        <p>Discards Left: ${state.currentDiscards}</p>
-    `;
+
+    const scoreDiv = renderStatsDiv()
     appDiv.appendChild(scoreDiv);
 
     const currentWordDiv = document.createElement('div');
@@ -480,14 +517,17 @@ function init() {
     appDiv.innerHTML = '<p>Loading dictionary, please wait...</p>';
 
     loadDictionary(() => {
-        state.deck = initializeDeck();
-        state.hand = drawTiles(7);
+        newDeck = initializeDeck()
+        state.deck = newDeck;
+        state.roundDeck = [...newDeck];
+        state.permanentDeck = [...newDeck];
+        state.hand = drawTiles(state.maxHandLength);
         state.currentWord = [];
         state.score = 0;
         state.roundScore = 0;
         state.maxDiscards = 3;
         state.maxWords = 5;
-        state.targetScore = 25;
+        state.targetScore = 100;
         state.currentDiscards = state.maxDiscards;
         state.currentWords = state.maxWords;
         state.round = 1;

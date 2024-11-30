@@ -4,8 +4,19 @@
 }
 
 #score {
-    font-size: 24px;
+    font-size: 20px;
+    width: 95vw;
+    background-color: gray;
+    margin: 2vw;
     margin-bottom: 10px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly; 
+}
+
+
+.top-row-stats-div {
+    display: flex;
 }
 
 #hand, #current-word {
@@ -36,6 +47,16 @@
     cursor: pointer;
 }
 
+/* Ensure the placeholder has the same dimensions as a tile */
+.placeholder {
+    width: 40px;
+    height: 40px;
+    margin-right: 5px;
+    background-color: lightgray;
+    border: 1px dashed black;
+}
+
+
 .points {
     position: absolute;
     bottom: 2px;
@@ -55,5 +76,5 @@
 #play-word-button {
     margin-top: 10px;
     padding: 10px 20px;
-    font-size: 16px;
+    font-size: 12px;
 }
