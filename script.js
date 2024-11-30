@@ -113,8 +113,6 @@ function discardTiles() {
 }
 
 
-
-// Create a tile div
 function createTile(tile, location) {
     const tileDiv = document.createElement('div');
     tileDiv.classList.add('tile');
@@ -132,31 +130,31 @@ function createTile(tile, location) {
     } else if (location === 'currentWord') {
         tileDiv.setAttribute('draggable', true);
         tileDiv.addEventListener('dragstart', dragStart);
-        tileDiv.addEventListener('click', () => unselectTile(tile));
+        tileDiv.addEventListener('dragover', dragOver);
+        tileDiv.addEventListener('drop', drop);
+
+        tileDiv.addEventListener('click', () => {
+            const index = state.currentWord.findIndex(t => t.id === tile.id);
+            if (index !== -1) {
+                state.currentWord.splice(index, 1);
+            }
+            state.hand.push(tile);
+
+            renderHand();
+            renderCurrentWord();
+            checkIfWordIsValid();
+        });
     }
 
     return tileDiv;
 }
 
 
-let draggedTile = null;
+
 
 function dragStart(event) {
     state.draggedTile = event.target;
-    state.placeholder = document.createElement('div');
-    state.placeholder.classList.add('placeholder');
     event.dataTransfer.setData('text/plain', null);
-
-    state.draggedTile.addEventListener('dragend', dragEnd);
-}
-
-function dragEnd(event) {
-    if (state.placeholder && state.placeholder.parentElement) {
-        state.placeholder.parentElement.removeChild(state.placeholder);
-    }
-    state.draggedTile.removeEventListener('dragend', dragEnd);
-    state.draggedTile = null;
-    state.placeholder = null;
 }
 
 function dragOver(event) {
@@ -165,71 +163,34 @@ function dragOver(event) {
 
 function drop(event) {
     event.preventDefault();
-    if (event.target.classList.contains('tile') && event.target !== draggedTile) {
+    const targetTile = event.target;
+
+
+    if (targetTile.classList.contains('tile') && targetTile !== state.draggedTile) {
         const currentWordDiv = document.getElementById('current-word');
         const tiles = Array.from(currentWordDiv.children);
-        const draggedIndex = tiles.indexOf(draggedTile);
-        const targetIndex = tiles.indexOf(event.target);
-        if (draggedIndex > targetIndex) {
-            currentWordDiv.insertBefore(draggedTile, event.target);
-        } else {
-            currentWordDiv.insertBefore(draggedTile, event.target.nextSibling);
+
+        const draggedIndex = tiles.indexOf(state.draggedTile);
+        const targetIndex = tiles.indexOf(targetTile);
+
+        if (draggedIndex !== -1 && targetIndex !== -1) {
+            if (draggedIndex < targetIndex) {
+                currentWordDiv.insertBefore(state.draggedTile, targetTile.nextSibling);
+                currentWordDiv.insertBefore(targetTile, state.draggedTile);
+            } else {
+                currentWordDiv.insertBefore(targetTile, state.draggedTile.nextSibling);
+                currentWordDiv.insertBefore(state.draggedTile, targetTile);
+            }
+
+            const temp = state.currentWord[draggedIndex];
+            state.currentWord[draggedIndex] = state.currentWord[targetIndex];
+            state.currentWord[targetIndex] = temp;
+
+            checkIfWordIsValid();
         }
-        updateCurrentWordOrder();
     }
 }
 
-// Changed Function: currentWordDragOver(event)
-function currentWordDragOver(event) {
-    event.preventDefault();
-
-    const currentWordDiv = event.currentTarget;
-    const rect = currentWordDiv.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-
-    let index = 0;
-
-    const tiles = Array.from(currentWordDiv.children).filter(tile => tile !== state.placeholder);
-
-    for (let i = 0; i < tiles.length; i++) {
-        const tile = tiles[i];
-        const tileRect = tile.getBoundingClientRect();
-        const relativeX = tileRect.left - rect.left;
-        const tileCenterX = relativeX + tileRect.width / 2;
-
-        if (x < tileCenterX) {
-            index = i;
-            break;
-        }
-
-        index = i + 1;
-    }
-
-    if (state.placeholder && state.placeholder.parentElement) {
-        state.placeholder.parentElement.removeChild(state.placeholder);
-    }
-
-    currentWordDiv.insertBefore(state.placeholder, currentWordDiv.children[index] || null);
-}
-
-
-function currentWordDragLeave(event) {
-    if (state.placeholder && state.placeholder.parentElement) {
-        state.placeholder.parentElement.removeChild(state.placeholder);
-    }
-}
-
-function currentWordDrop(event) {
-    event.preventDefault();
-
-    if (state.placeholder && state.placeholder.parentElement) {
-        state.placeholder.parentElement.replaceChild(state.draggedTile, state.placeholder);
-    } else {
-        event.currentTarget.appendChild(state.draggedTile);
-    }
-
-    updateCurrentWordOrder();
-}
 
 
 
@@ -466,9 +427,6 @@ function renderBasicScreen() {
 
     const currentWordDiv = document.createElement('div');
     currentWordDiv.id = 'current-word';
-    currentWordDiv.addEventListener('dragover', currentWordDragOver);
-    currentWordDiv.addEventListener('dragleave', currentWordDragLeave);
-    currentWordDiv.addEventListener('drop', currentWordDrop);
     appDiv.appendChild(currentWordDiv);
 
     const handDiv = document.createElement('div');

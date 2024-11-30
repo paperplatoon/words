@@ -47,7 +47,6 @@
     cursor: pointer;
 }
 
-/* Ensure the placeholder has the same dimensions as a tile */
 .placeholder {
     width: 40px;
     height: 40px;
@@ -55,6 +54,13 @@
     background-color: lightgray;
     border: 1px dashed black;
 }
+
+.tile-drag-image {
+    width: 40px;
+    height: 40px;
+    pointer-events: none; /* Prevent interaction */
+}
+
 
 
 .points {
