@@ -186,3 +186,95 @@
     margin-bottom: 20px;
 }
 
+/* CSS for Removing Tiles Screen */
+
+.message {
+    margin-bottom: 20px;
+    font-size: 18px;
+    text-align: center;
+}
+
+.tiles-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.tile {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    border: 2px solid #000;
+    border-radius: 5px;
+    margin: 0 10px;
+    cursor: pointer;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.tile.selected {
+    background-color: #edd4d4;
+    border-color: #a72828;
+}
+
+.letter {
+    font-size: 24px;
+    font-weight: bold;
+    z-index: 1;
+}
+
+.points {
+    position: absolute;
+    bottom: 0.2vmin;
+    right: 0vmin;
+    height: 2vmin;
+    width: 2vmin;
+    color: purple;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 16px;
+    text-align: right;
+}
+
+.selected-info {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 16px;
+    color: #555;
+}
+
+.buttons-container {
+    text-align: center;
+}
+
+.remove-button,
+.skip-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    margin: 0 10px;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    transition: background-color 0.3s;
+}
+
+.remove-button {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.remove-button:disabled {
+    background-color: #f5c6cb;
+    cursor: not-allowed;
+}
+
+.skip-button {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+

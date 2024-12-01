@@ -525,6 +525,11 @@ function chooseTile() {
     renderCurrentScreen();
 }
 
+function chooseTilesToRemove() {
+    state.currentScreen = 'removing-tiles';
+    renderCurrentScreen();
+}
+
 function chooseRelic() {
     state.currentScreen = 'choosing-new-relic';
     renderCurrentScreen();
@@ -703,6 +708,8 @@ function renderCurrentScreen() {
         renderChoosingNewTileScreen();
     } else if (state.currentScreen === 'choosing-new-relic') {
         renderChoosingNewRelicScreen();
+    } else if (state.currentScreen === 'removing-tiles') {
+        renderRemovingTilesScreen();
     }
 }
 
@@ -872,12 +879,13 @@ function renderChoosingNewRelicScreen() {
         // Add click event listener to add relic and switch screen
         relicDiv.addEventListener('click', () => {
             // Add relic to currentRelics
+            
             state.currentRelics.push(relic);
             dispatchEvent(GameEvents.ON_RELIC_ACQUIRED, relic);
             alert(`You have acquired the relic: ${relic.name}!`);
 
             // Proceed to the next round
-            chooseTile();
+            chooseTilesToRemove()
         });
 
         relicsDiv.appendChild(relicDiv);
@@ -896,6 +904,122 @@ function renderChoosingNewRelicScreen() {
 
     appDiv.appendChild(skipButton);
 }
+
+function renderRemovingTilesScreen() {
+    const appDiv = document.getElementById('app');
+    appDiv.innerHTML = '';
+
+    const messageDiv = document.createElement('div');
+    messageDiv.textContent = 'Choose up to 3 tiles to remove from your deck:';
+    messageDiv.classList.add('message');
+    appDiv.appendChild(messageDiv);
+
+    // Select 3 random tiles from the permanent deck
+    const availableTiles = state.permanentDeck.slice();
+    const tilesToShow = [];
+    const numTiles = Math.min(3, availableTiles.length);
+    for (let i = 0; i < numTiles; i++) {
+        const index = Math.floor(Math.random() * availableTiles.length);
+        tilesToShow.push(availableTiles.splice(index, 1)[0]);
+    }
+
+    // Reset selectedTiles
+    state.selectedTiles = [];
+
+    // Display the tiles as clickable elements
+    const tilesDiv = document.createElement('div');
+    tilesDiv.id = 'tiles-choice';
+    tilesDiv.classList.add('tiles-container');
+
+    tilesToShow.forEach(tile => {
+        const tileDiv = document.createElement('div');
+        tileDiv.classList.add('tile');
+        tileDiv.dataset.tileId = tile.id;
+
+        const letterSpan = document.createElement('span');
+        letterSpan.classList.add('letter');
+        letterSpan.textContent = tile.letter;
+
+        const pointsDiv = document.createElement('div');
+        pointsDiv.classList.add('points');
+        pointsDiv.textContent = tile.points;
+
+        tileDiv.appendChild(letterSpan);
+        tileDiv.appendChild(pointsDiv);
+
+        tileDiv.addEventListener('click', () => {
+            if (state.selectedTiles.includes(tile.id)) {
+                // Deselect the tile
+                state.selectedTiles = state.selectedTiles.filter(id => id !== tile.id);
+                tileDiv.classList.remove('selected');
+            } else {
+                if (state.selectedTiles.length < 3) {
+                    // Select the tile
+                    state.selectedTiles.push(tile.id);
+                    tileDiv.classList.add('selected');
+                    console.log("selecting tile")
+                }
+            }
+            updateSelectedTiles();
+        });
+
+        tilesDiv.appendChild(tileDiv);
+    });
+
+    appDiv.appendChild(tilesDiv);
+
+    // Selected tiles div
+    const selectedDiv = document.createElement('div');
+    selectedDiv.id = 'selected-tiles';
+    selectedDiv.textContent = 'Selected Tiles: 0';
+    selectedDiv.classList.add('selected-info');
+    appDiv.appendChild(selectedDiv);
+
+    // Buttons
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.classList.add('buttons-container');
+
+    const removeButton = document.createElement('button');
+    removeButton.textContent = 'Remove';
+    removeButton.disabled = true;
+    removeButton.classList.add('remove-button');
+
+    removeButton.addEventListener('click', () => {
+        if (state.selectedTiles.length > 0) {
+            state.selectedTiles.forEach(tileId => {
+                const index = state.permanentDeck.findIndex(t => t.id === tileId);
+                if (index > -1) {
+                    state.permanentDeck.splice(index, 1);
+                }
+            });
+            state.selectedTiles = [];
+            // Proceed to choosing new tile screen
+            state.currentScreen = 'choosing-new-tile';
+            renderCurrentScreen();
+        }
+    });
+
+    const skipButton = document.createElement('button');
+    skipButton.textContent = 'Skip';
+    skipButton.classList.add('skip-button');
+
+    skipButton.addEventListener('click', () => {
+        // Proceed to choosing new tile screen without removing
+        state.currentScreen = 'choosing-new-tile';
+        renderCurrentScreen();
+    });
+
+    buttonsDiv.appendChild(removeButton);
+    buttonsDiv.appendChild(skipButton);
+    appDiv.appendChild(buttonsDiv);
+
+    // Function to update selected tiles display and button state
+    function updateSelectedTiles() {
+        selectedDiv.textContent = `Selected Tiles: ${state.selectedTiles.length}`;
+        removeButton.disabled = state.selectedTiles.length === 0;
+    }
+}
+
 
 
 
