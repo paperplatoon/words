@@ -21,18 +21,19 @@ let state = {
     discardsLeft: 3,
     maxDiscards: 3,
 
-    maxWords: 4,
-    maxHandLength: 8,
+    maxWords: 3,
+    wordsLeft: 3,
+    maxHandLength: 7,
     
     drawsLeft: 2,
     maxDraws: 2,
     numTilesDrawn: 3,
 
-    currentWords: 5,
     round: 1,
     roundScore: 0,
     currentRelics: [],
     playedWords: {},
+    targetScore: 60,
 
     additionalMultiplier: 0,
     additionalStatePoints: 0,
@@ -487,7 +488,7 @@ function playWord() {
         const wordScore = scoreArray[0] * (scoreArray[1]);
         state.roundScore += wordScore;
         state.score += wordScore;
-        state.currentWords -= 1;
+        state.wordsLeft -= 1;
 
         if (state.playedWords[word]) {
             state.playedWords[word] += 1;
@@ -507,7 +508,7 @@ function playWord() {
         if (state.roundScore >= state.targetScore) {
             alert(`Congratulations! You've reached the target score of ${state.targetScore} points.`);
             chooseRelic();
-        } else if (state.currentWords <= 0) {
+        } else if (state.wordsLeft <= 0) {
             alert(`Out of words! You didn't reach the target score of ${state.targetScore} points. Game over.`);
             init();
         } else {
@@ -535,9 +536,9 @@ function nextRoundActual() {
     });
     state.currentScreen = 'basic-screen';
     state.round += 1;
-    state.targetScore += 25;
+    state.targetScore += 20;
     state.discardsLeft = state.maxDiscards;
-    state.currentWords = state.maxWords;
+    state.wordsLeft = state.maxWords;
     state.drawsLeft = state.maxDraws
     state.roundScore = 0;
     state.roundDeck = shuffle([...state.permanentDeck]);
@@ -569,9 +570,9 @@ function renderStatsDiv() {
     const roundDiv = createTextDiv("Round: " + state.round, 'stats-div')
     const totalScoreDiv = createTextDiv("Total Score: " + state.score, 'stats-div')
     const roundScoreDiv = createTextDiv("Round Score: " + state.roundScore + "/" + state.targetScore, 'stats-div')
-    const wordsDiv = createTextDiv(state.currentWords + " Words", 'stats-div')
-    const discardsDiv = createTextDiv(state.discardsLeft + " Discards", 'stats-div')
-    const drawsDiv = createTextDiv(state.drawsLeft + " Draws", 'stats-div')
+    const wordsDiv = createTextDiv(state.wordsLeft + " Words left", 'stats-div')
+    const discardsDiv = createTextDiv(state.discardsLeft + " Discards left", 'stats-div')
+    const drawsDiv = createTextDiv(state.drawsLeft + " Draws left", 'stats-div')
     const tilesDiv = createTextDiv("Tiles left: " + state.roundDeck.length + "/" + state.permanentDeck.length, 'stats-div')
 
     topRowDiv.append(roundDiv, totalScoreDiv, roundScoreDiv)
@@ -927,10 +928,8 @@ function init() {
         state.score = 0;
         state.roundScore = 0;
         state.maxDiscards = 3;
-        state.maxWords = 4;
-        state.targetScore = 100;
         state.discardsLeft = state.maxDiscards;
-        state.currentWords = state.maxWords;
+        state.wordsLeft = state.maxWords;
         state.playedWords = {}
         state.round = 1;
         state.currentScreen = 'basic-screen';
