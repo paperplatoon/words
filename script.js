@@ -88,7 +88,7 @@ function initializeDeck() {
     return shuffle(deck);
 }
 
-const GameEvents = {
+var GameEvents = {
     ON_WORD_PLAY: 'onWordPlay',
     ON_DISCARD: 'onDiscard',
     ON_CALCULATE_WORD: 'onCalculateWord',
@@ -104,111 +104,6 @@ function dispatchEvent(eventName, ...args) {
     });
 }
 
-
-
-const relicsCollection = [
-    {
-        name: "Enchanted Tiles",
-        image: "images/enchanted_tiles.png", // Replace with actual image path
-        description: "Every tile in a played word gets +1 added to its points.",
-        handlers: {
-            [GameEvents.ON_WORD_PLAY]: function(wordTiles, word) {
-                wordTiles.forEach(tile => {
-                    if (tile.letter !== '_') { // Ensure blanks are not affected
-                        const deckTile = state.permanentDeck.find(t => t.id === tile.id);
-                        if (deckTile) {
-                            deckTile.points += 1;
-                        }
-                    }
-                });
-            }
-        }
-    },
-    {
-        name: "Four-Letter Bonus",
-        image: "images/four_letter_bonus.png",
-        description: "Add +3 to the multiplier when the word is exactly 4 letters long.",
-        handlers: {
-            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
-                if (wordTiles.length === 4) {
-                    state.additionalMultiplier += 3;
-                }
-            }
-        }
-    },
-    // New Relics
-    {
-        name: "Sea's Blessing",
-        image: "images/seas_blessing.png",
-        description: "Add +6 to the multiplier if the word contains 'sea'.",
-        handlers: {
-            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word, context) {
-                if (word.includes('sea')) {
-                    state.additionalMultiplier += 5;
-                }
-            }
-        }
-    },
-    {
-        name: "Loyalty Multiplier",
-        image: "images/loyalty_multiplier.png",
-        description: "+5X multiplier, where X is the number of times you've played this word before.",
-        handlers: {
-            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
-                const count = state.playedWords[word] || 0;
-                if (count > 0) {
-                    state.additionalMultiplier += (count*5);
-                }
-            }
-        }
-    },
-    {
-        name: "Unique Contributor",
-        image: "images/unique_contributor.png",
-        description: "Add +1 point for for each unique word played.",
-        handlers: {
-            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
-                if (!state.playedWords[word]) {
-                    state.additionalStatePoints += Object.keys(state.playedWords).length;
-                }
-            }
-        }
-    },
-    {
-        name: "Vowel Enchantment",
-        image: "images/vowel_enchantment.png",
-        description: "Vowels are worth +3 additional points.",
-        handlers: {
-            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
-                const vowels = ['a', 'e', 'i', 'o', 'u'];
-                wordTiles.forEach(tile => {
-                    if (vowels.includes(tile.letter.toLowerCase())) {
-                        tile.additionalPoints += 3; // Add to additionalPoints
-                    }
-                });
-            }
-        }
-    },
-
-    {
-        name: "Consonant Fortification",
-        image: "images/consonant_fortification.png",
-        description: "Non-vowels are worth +2 additional points.",
-        handlers: {
-            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
-                const vowels = ['a', 'e', 'i', 'o', 'u'];
-                wordTiles.forEach(tile => {
-                    if (!vowels.includes(tile.letter.toLowerCase()) && tile.letter !== '_') {
-                        tile.additionalPoints += 2; // Add to additionalPoints
-                    }
-                });
-            }
-        }
-    },
-
-];
-
-
 // Shuffle the deck
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -222,7 +117,6 @@ function shuffle(array) {
 function shuffleHand() {
     let newArrayOrder = shuffle([...state.hand])
     state.hand = newArrayOrder
-    console.log('new hand is ', state.hand)
     renderCurrentScreen()
 }
 
@@ -305,9 +199,6 @@ function createTile(tile, location) {
 
     return tileDiv;
 }
-
-
-
 
 function dragStart(event) {
     state.draggedTile = event.target;
@@ -452,10 +343,10 @@ function checkIfWordIsValid() {
 
 function calculateWord(wordTiles) {
     state.additionalMultiplier = 0;
+    state.additionalStatePoints = 0;
     state.currentWord.forEach(tile => {
         tile.additionalPoints = 0;
     });
-    state.additionalStatePoints = 0;
 
     const word = wordTiles.map(tile => tile.letter).join('').toLowerCase();
     dispatchEvent(GameEvents.ON_CALCULATE_WORD, wordTiles, word);
@@ -507,7 +398,12 @@ function playWord() {
         // Check win condition
         if (state.roundScore >= state.targetScore) {
             alert(`Congratulations! You've reached the target score of ${state.targetScore} points.`);
-            chooseRelic();
+            if (state.round % 2 == 1) {
+                chooseRelic();
+            } else {
+                chooseTilesToRemove();
+            }
+            
         } else if (state.wordsLeft <= 0) {
             alert(`Out of words! You didn't reach the target score of ${state.targetScore} points. Game over.`);
             init();
@@ -536,6 +432,8 @@ function chooseRelic() {
 }
 
 function nextRoundActual() {
+    state.additionalMultiplier = 0; 
+    state.additionalStatePoints = 0;  
     state.permanentDeck.forEach(tile => {
         tile.additionalPoints = 0;
     });
@@ -544,7 +442,7 @@ function nextRoundActual() {
     state.targetScore += 20;
     state.discardsLeft = state.maxDiscards;
     state.wordsLeft = state.maxWords;
-    state.drawsLeft = state.maxDraws
+    state.drawsLeft +=1
     state.roundScore = 0;
     state.roundDeck = shuffle([...state.permanentDeck]);
     state.hand = drawTiles(state.maxHandLength);
@@ -671,7 +569,7 @@ function renderRelicsDiv() {
         relicName.style.margin = '5px 0';
 
         const relicDescription = document.createElement('p');
-        relicDescription.textContent = relic.description;
+        relicDescription.textContent = relic.description(state);
         relicDescription.style.fontSize = '12px';
         relicDescription.style.color = '#555';
 
@@ -868,7 +766,7 @@ function renderChoosingNewRelicScreen() {
         relicName.style.margin = '5px 0';
 
         const relicDescription = document.createElement('p');
-        relicDescription.textContent = relic.description;
+        relicDescription.textContent = relic.description(state);
         relicDescription.style.fontSize = '12px';
         relicDescription.style.color = '#555';
 
@@ -917,7 +815,7 @@ function renderRemovingTilesScreen() {
     // Select 3 random tiles from the permanent deck
     const availableTiles = state.permanentDeck.slice();
     const tilesToShow = [];
-    const numTiles = Math.min(3, availableTiles.length);
+    const numTiles = Math.min(4, availableTiles.length);
     for (let i = 0; i < numTiles; i++) {
         const index = Math.floor(Math.random() * availableTiles.length);
         tilesToShow.push(availableTiles.splice(index, 1)[0]);
@@ -957,7 +855,6 @@ function renderRemovingTilesScreen() {
                     // Select the tile
                     state.selectedTiles.push(tile.id);
                     tileDiv.classList.add('selected');
-                    console.log("selecting tile")
                 }
             }
             updateSelectedTiles();
@@ -1061,8 +958,6 @@ function init() {
         renderBasicScreen();
     });
 }
-
-
 
 
 window.onload = init;
