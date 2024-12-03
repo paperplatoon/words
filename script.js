@@ -341,15 +341,16 @@ function checkIfWordIsValid() {
 }
 
 
-function calculateWord(wordTiles) {
+function calculateWord(wordTiles, validWord) {
     state.additionalMultiplier = 0;
     state.additionalStatePoints = 0;
     state.currentWord.forEach(tile => {
         tile.additionalPoints = 0;
     });
 
-    const word = wordTiles.map(tile => tile.letter).join('').toLowerCase();
-    dispatchEvent(GameEvents.ON_CALCULATE_WORD, wordTiles, word);
+    if (validWord) {
+        dispatchEvent(GameEvents.ON_CALCULATE_WORD, wordTiles, validWord);
+    }
 
     let points = wordTiles.reduce((sum, tile) => sum + tile.points + (tile.additionalPoints || 0), 0) + state.additionalStatePoints;
     let mult = wordTiles.length;
@@ -375,19 +376,19 @@ function playWord() {
 
     if (validWord && state.currentWord.length > 1) { // Ensure word length > 1
         
-        const scoreArray = calculateWord(wordTiles);
+        const scoreArray = calculateWord(wordTiles, validWord);
         const wordScore = scoreArray[0] * (scoreArray[1]);
         state.roundScore += wordScore;
         state.score += wordScore;
         state.wordsLeft -= 1;
 
-        if (state.playedWords[word]) {
-            state.playedWords[word] += 1;
+        if (state.playedWords[validWord]) {
+            state.playedWords[validWord] += 1;
         } else {
-            state.playedWords[word] = 1;
+            state.playedWords[validWord] = 1;
         }
 
-        dispatchEvent(GameEvents.ON_WORD_PLAY, wordTiles, word);
+        dispatchEvent(GameEvents.ON_WORD_PLAY, wordTiles, validWord);
 
         alert(`Good job, "${validWord}" is a word worth ${wordScore} points!`);
 
@@ -484,8 +485,9 @@ function renderStatsDiv() {
     let currentWordDiv;
 
     if (state.currentWord.length > 1 && checkIfWordIsValid()) {
-        const wordScore = calculateWord(state.currentWord)
-        currentWordDiv = createTextDiv(wordScore[0] + " x " + wordScore[1], 'stats-div')     
+        const validWord = getValidWordWithWildcards(state.currentWord.map(tile => tile.letter).join('').toLowerCase());
+        const scoreArray = calculateWord(state.currentWord, validWord);
+        currentWordDiv = createTextDiv(scoreArray[0] + " x " + scoreArray[1], 'stats-div')     
     } else {
         currentWordDiv = createTextDiv()
     }
@@ -533,6 +535,7 @@ function renderButtonsDiv() {
 }
 
 function renderRelicsDiv() {
+    console.log("state current relics is ", state.currentRelics)
     if (state.currentRelics.length === 0) {
         return document.createElement('div'); // Return an empty div if no relics
     }
