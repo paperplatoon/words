@@ -31,7 +31,7 @@ let state = {
 
     round: 1,
     roundScore: 0,
-    currentRelics: [],
+    currentRelics: [relicsCollection[14]],
     playedWords: {},
     targetScore: 60,
 
@@ -68,7 +68,7 @@ function initializeDeck() {
         { letter: 'X', count: 1, points: 8 },
         { letter: 'Y', count: 1, points: 4 },
         { letter: 'Z', count: 1, points: 10 },
-        { letter: '_', count: 2, points: 0 } 
+        { letter: '_', count: 20, points: 0 } 
     ];
 
     let deck = [];
@@ -387,6 +387,8 @@ function playWord() {
         } else {
             state.playedWords[validWord] = 1;
         }
+
+        console.log(wordTiles)
 
         dispatchEvent(GameEvents.ON_WORD_PLAY, wordTiles, validWord);
 
@@ -921,45 +923,28 @@ function renderRemovingTilesScreen() {
 }
 
 
-
-
-function loadDictionary(callback) {
-    fetch('words_list.txt')
-        .then(response => response.text())
-        .then(text => {
-            const wordsArray = text.split('\n').map(word => word.trim().toLowerCase());
-            state.dictionary = new Set(wordsArray);
-            callback();
-        })
-        .catch(error => {
-            console.error('Error loading word list:', error);
-            state.dictionary = new Set(); // Use an empty set to prevent errors
-            callback();
-        });
-}
-
 function init() {
     const appDiv = document.getElementById('app');
     appDiv.innerHTML = '<p>Loading dictionary, please wait...</p>';
+    
 
-    loadDictionary(() => {
-        newDeck = initializeDeck()
-        state.deck = newDeck;
-        state.roundDeck = [...newDeck];
-        state.permanentDeck = [...newDeck];
-        state.hand = drawTiles(state.maxHandLength);
-        state.currentWord = [];
-        state.score = 0;
-        state.roundScore = 0;
-        state.maxDiscards = 3;
-        state.discardsLeft = state.maxDiscards;
-        state.wordsLeft = state.maxWords;
-        state.playedWords = {}
-        state.round = 1;
-        state.currentScreen = 'basic-screen';
+    newDeck = initializeDeck()
+    state.deck = newDeck;
+    state.roundDeck = [...newDeck];
+    state.permanentDeck = [...newDeck];
+    state.hand = drawTiles(state.maxHandLength);
+    state.dictionary = new Set(wordsArray.map(word => word.toLowerCase())),
+    state.currentWord = [];
+    state.score = 0;
+    state.roundScore = 0;
+    state.maxDiscards = 3;
+    state.discardsLeft = state.maxDiscards;
+    state.wordsLeft = state.maxWords;
+    state.playedWords = {}
+    state.round = 1;
+    state.currentScreen = 'basic-screen';
 
-        renderBasicScreen();
-    });
+    renderBasicScreen();
 }
 
 

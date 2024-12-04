@@ -239,7 +239,8 @@ var relicsCollection = [
             },
             handlers: {
                 [GameEvents.ON_WORD_PLAY]: function(wordTiles, word) {
-                    const eCount = word.split('').filter(letter => letter.toLowerCase() === 'e').length;
+                    console.log("handlers", wordTiles)
+                    const eCount = wordTiles.filter(tile => tile.letter.toLowerCase() === 'e').length;
                     if (eCount > 0) {
                         this.eCount += eCount;
                     }
