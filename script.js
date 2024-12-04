@@ -31,7 +31,7 @@ let state = {
 
     round: 1,
     roundScore: 0,
-    currentRelics: [],
+    currentRelics: [relicsCollection[20]],
     playedWords: {},
     targetScore: 60,
 
@@ -50,7 +50,7 @@ function initializeDeck() {
         { letter: 'E', count: 4, points: 1 },
         { letter: 'F', count: 1, points: 4 },
         { letter: 'G', count: 2, points: 2 },
-        { letter: 'H', count: 1, points: 4 },
+        { letter: 'H', count: 10, points: 4 },
         { letter: 'I', count: 3, points: 1 },
         { letter: 'J', count: 1, points: 8 },
         { letter: 'K', count: 1, points: 5 },
@@ -64,7 +64,7 @@ function initializeDeck() {
         { letter: 'T', count: 2, points: 1 },
         { letter: 'U', count: 2, points: 1 },
         { letter: 'V', count: 1, points: 4 },
-        { letter: 'W', count: 1, points: 4 },
+        { letter: 'W', count: 10, points: 4 },
         { letter: 'X', count: 1, points: 8 },
         { letter: 'Y', count: 1, points: 4 },
         { letter: 'Z', count: 1, points: 10 },
@@ -96,10 +96,10 @@ var GameEvents = {
     // Add more events as needed
 };
 
-function dispatchEvent(eventName, ...args) {
+function dispatchEvent(eventName, wordTiles, word) {
     state.currentRelics.forEach(relic => {
         if (relic.handlers && typeof relic.handlers[eventName] === 'function') {
-            relic.handlers[eventName](...args);
+            relic.handlers[eventName].call(relic, wordTiles, word);
         }
     });
 }
@@ -572,7 +572,7 @@ function renderRelicsDiv() {
         relicName.style.margin = '5px 0';
 
         const relicDescription = document.createElement('p');
-        relicDescription.textContent = relic.description(state);
+        relicDescription.textContent = relic.description(state, relic);
         relicDescription.style.fontSize = '12px';
         relicDescription.style.color = '#555';
 
@@ -769,7 +769,7 @@ function renderChoosingNewRelicScreen() {
         relicName.style.margin = '5px 0';
 
         const relicDescription = document.createElement('p');
-        relicDescription.textContent = relic.description(state);
+        relicDescription.textContent = relic.description(state, relic);
         relicDescription.style.fontSize = '12px';
         relicDescription.style.color = '#555';
 
@@ -924,7 +924,7 @@ function renderRemovingTilesScreen() {
 
 
 function loadDictionary(callback) {
-    fetch('words.txt')
+    fetch('wordlist10k.txt')
         .then(response => response.text())
         .then(text => {
             const wordsArray = text.split('\n').map(word => word.trim().toLowerCase());

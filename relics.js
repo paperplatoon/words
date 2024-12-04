@@ -91,15 +91,23 @@ var relicsCollection = [
         {
             name: "Unique Contributor",
             image: "images/unique_contributor.png",
-            description: (state) => "Add +1 point for each unique word played (+" + Object.keys(state.playedWords).length +  ")",
+            description: function(state, relic) {
+                return `Gain +1 point for each unique word played (+${relic.uniqueWordCount})`;
+            },
             handlers: {
-                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                [GameEvents.ON_WORD_PLAY]: function(wordTiles, word) {
                     if (!state.playedWords[word]) {
-                        state.additionalStatePoints += Object.keys(state.playedWords).length;
+                        state.playedWords[word] = 1;
+                        this.uniqueWordCount += 1;
                     }
+                },
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                        state.additionalStatePoints += this.uniqueWordCount;
                 }
-            }
+            },
+            uniqueWordCount: 0 // Initialize counter
         },
+
         {
             name: "Vowel Enchantment",
             image: "images/vowel_enchantment.png",
@@ -198,13 +206,13 @@ var relicsCollection = [
         {
             name: "Watching Eyes",
             image: "images/watching_eyes.png", // Replace with actual image path
-            description: function(state) {
-                return "Words with double 'o' (like 'look') get +15 multiplier.";
+            description: function(state, relic) {
+                return "Words with double 'o' (like 'look') get +13 multiplier.";
             },
             handlers: {
                 [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
-                    if (/oo/.test(word)) {
-                        state.additionalMultiplier += 15;
+                    if (/oo/i.test(word)) {
+                        state.additionalMultiplier += 13;
                     }
                 }
             }
@@ -222,9 +230,155 @@ var relicsCollection = [
                     }
                 }
             }
-        }
+        },
+        {
+            name: "Commoner",
+            image: "images/energized_ears.png", // Replace with actual image path
+            description: function(state, relic) {
+                return `Gains +2 additional points for each 'E' played (+${relic.eCount*2})`;
+            },
+            handlers: {
+                [GameEvents.ON_WORD_PLAY]: function(wordTiles, word) {
+                    const eCount = word.split('').filter(letter => letter.toLowerCase() === 'e').length;
+                    if (eCount > 0) {
+                        this.eCount += eCount;
+                    }
+                },
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                    state.additionalStatePoints += this.eCount * 2;
+                }
+            },
+            eCount: 0 // Initialize counter
+        },
+
+        //16
+
+        {
+            name: "Jane Doe",
+            image: "images/jane_doe.png", // Replace with actual image path
+            description: function(state, relic) {
+                return `Gains +1 additional points for each '_' played (+${relic.blankCount})`;
+            },
+            handlers: {
+                [GameEvents.ON_WORD_PLAY]: function(wordTiles, word) {
+                    const blankNumbers = wordTiles.filter(tile => tile.letter === '_').length;
+                    console.log(wordTiles)
+                    console.log(blankNumbers)
+                    if (blankNumbers > 0) {
+                        this.blankCount += blankNumbers;
+                    }
+                },
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                    state.additionalStatePoints += this.blankCount;
+                }
+            },
+            blankCount: 0 // Initialize counter
+        },
+
+        {
+            name: "The Breach",
+            image: "images/the_breach.png", // Ensure this image exists in your images directory
+            description: function(state, relic) {
+                return "Gives +5 multiplier if the second letter of the word is 'N'.";
+            },
+            handlers: {
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                    // Ensure the word has at least two letters
+                    if (word.charAt(1).toLowerCase() === 'n') {
+                        state.additionalMultiplier += 5;
+                    }
+                }
+            }
+        },
+
+        {
+            name: "Phone Book",
+            image: "images/vowel_enchantment.png",
+            description: function(state) {
+                return "Words beginning with a vowel give +5 points";
+            },
+            handlers: {
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                    const vowels = ['a', 'e', 'i', 'o', 'u'];
+                    if (vowels.includes(word.charAt(0).toLowerCase())) {
+                        state.additionalMultiplier += 3;
+                    }
+                }
+            }
+        },
+
+        {
+            name: "The Grizzly",
+            image: "images/the_breach.png", // Ensure this image exists in your images directory
+            description: function(state, relic) {
+                return "Gives +6 points if the second letter of the word is 'R'.";
+            },
+            handlers: {
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                    // Ensure the word has at least two letters
+                    if (word.charAt(1).toLowerCase() === 'r') {
+                        state.additionalStatePoints += 6;
+                    }
+                }
+            }
+        },
+
+        {
+            name: "Sibilance",
+            image: "images/the_breach.png", // Ensure this image exists in your images directory
+            description: function(state, relic) {
+                return "Gives +5 mult points if the second letter of the word is 'L'.";
+            },
+            handlers: {
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                    // Ensure the word has at least two letters
+                    if (word.charAt(1).toLowerCase() === 'r') {
+                        state.additionalMultiplier += 5;
+                    }
+                }
+            }
+        },
+
+        //21
+
+        {
+            name: "Interrogation",
+            image: "images/watching_eyes.png", // Replace with actual image path
+            description: function(state) {
+                return "Words containing a 'wh' get +16 multiplier.";
+            },
+            handlers: {
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                    if (/wh/i.test(word)) {
+                        state.additionalMultiplier += 16;
+                    }
+                }
+            }
+        },
+
+        {
+            name: "Neo",
+            image: "images/watching_eyes.png", // Replace with actual image path
+            description: function(state) {
+                return "Words containing a 'one' get +14 multiplier.";
+            },
+            handlers: {
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                    if (/one/i.test(word)) {
+                        state.additionalMultiplier += 16;
+                    }
+                }
+            }
+        },
     
     ];
+
+
+
+
+
+
+
 
     const drivingWords = [
         // 1-100
