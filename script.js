@@ -31,7 +31,7 @@ let state = {
 
     round: 1,
     roundScore: 0,
-    currentRelics: [relicsCollection[14]],
+    currentRelics: [],
     playedWords: {},
     targetScore: 60,
 
@@ -40,6 +40,7 @@ let state = {
 
     currentScreen: 'basic-screen',
 };
+// state.currentRelics = [relicsCollection[21]]
 // Initialize the deck with letters and points
 function initializeDeck() {
     const letters = [
@@ -68,7 +69,7 @@ function initializeDeck() {
         { letter: 'X', count: 1, points: 8 },
         { letter: 'Y', count: 1, points: 4 },
         { letter: 'Z', count: 1, points: 10 },
-        { letter: '_', count: 20, points: 0 } 
+        { letter: '_', count: 2, points: 0 } 
     ];
 
     let deck = [];
