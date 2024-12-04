@@ -174,20 +174,6 @@ var relicsCollection = [
         },
 
         //11
-        {
-            name: "Driving Force",
-            image: "images/driving_force.png", // Replace with actual image path
-            description: function(state) {
-                return "Gives +20 points if your word relates to driving a card";
-            },
-            handlers: {
-                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
-                    if (drivingWords && drivingWords.includes(word.toLowerCase())) {
-                        state.additionalPoints += 20;
-                    }
-                }
-            }
-        },
 
         {
             name: "History Buff",
@@ -371,6 +357,36 @@ var relicsCollection = [
                 }
             }
         },
+        {
+
+            name: "Color Expert",
+            image: "images/color_expert.png", // Replace with actual image path
+            description: function(state, relic) {
+                return `Gives +12 points if the word is a color`;
+            },
+            handlers: {
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                    if (colorWords.includes(word.toLowerCase())) {
+                        state.additionalStatePoints += 12;
+                        console.log(`Color Expert: Added +12 points for word "${word}".`);
+                    }
+                }
+            },
+        },
+        {
+            name: "Driving Force",
+            image: "images/driving_force.png", // Replace with actual image path
+            description: function(state) {
+                return "Gives +20 points if your word relates to driving a card";
+            },
+            handlers: {
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                    if (drivingWords && drivingWords.includes(word.toLowerCase())) {
+                        state.additionalStatePoints += 20;
+                    }
+                }
+            }
+        },
     
     ];
 
@@ -380,8 +396,47 @@ var relicsCollection = [
 
 
 
-
-    const drivingWords = [
+    const colorWords = [
+        "red", "blue", "green", "yellow", "black", "white", "pink", "orange", "brown", "purple",
+        "gray", "violet", "indigo", "cyan", "magenta", "lime", "maroon", "olive", "teal", "navy",
+        "beige", "gold", "silver", "bronze", "coral", "peach", "mint", "aqua", "lavender", "tan",
+        "ivory", "crimson", "emerald", "fuchsia", "honey", "jade", "lilac", "mauve", "mustard", "ruby",
+        "saffron", "salmon", "sapphire", "scarlet", "sepia", "tangerine", "amber", "azure", "blush", "brick",
+        "copper", "cream", "denim", "flame", "forest", "ginger", "khaki", "lemon", "lime", "melon",
+        "mint", "moss", "navy", "ochre", "olive", "onyx", "pear", "plum", "puce", "rust",
+        "sage", "sky", "slate", "snow", "steel", "taupe", "topaz", "wheat", "wine", "rose",
+        "apricot", "banana", "biloba", "carmine", "cobalt", "cream", "copper", "crimson", "cyan", "denim",
+        "ebony", "emerald", "fawn", "fern", "fire", "flax", "foam", "golden", "grape", "graphite",
+        "hazel", "heliotrope", "honeydew", "ice", "jade", "jam", "jet", "kiwi", "lavender", "lemon",
+        "lichen", "linen", "mahogany", "marigold", "mauve", "mulberry", "mustard", "nectarine", "nutmeg", "olive",
+        "orchid", "papaya", "peach", "pear", "periwinkle", "persimmon", "platinum", "plum", "pumpkin", "quartz",
+        "raspberry", "rose", "ruby", "sandy", "sangria", "sapphire", "scarlet", "seafoam", "sepia", "sienna",
+        "smoke", "snow", "steel", "straw", "sunset", "tangerine", "taupe", "teal", "terracotta", "thistle",
+        "tomato", "topaz", "turquoise", "umber", "vanilla", "verdant", "vermilion", "violet", "wheat", "wine",
+        "amber", "auburn", "aqua", "beige", "black", "blue", "bronze", "brown", "cerise", "charcoal",
+        "chartreuse", "chestnut", "cinnamon", "claret", "cobalt", "copper", "coral", "crimson", "cyan", "denim",
+        "emerald", "fuchsia", "gold", "gray", "green", "hazel", "indigo", "ivory", "jade", "lavender",
+        "lemon", "lime", "magenta", "maroon", "mint", "mustard", "navy", "olive", "orange", "orchid",
+        "peach", "pear", "periwinkle", "pink", "plum", "powder", "purple", "raspberry", "red", "ruby",
+        "salmon", "sapphire", "scarlet", "seafoam", "silver", "smoke", "snow", "steel", "tan", "teal",
+        "tangerine", "turquoise", "violet", "white", "wine", "yellow", "alabaster", "amber", "amethyst", "aquamarine",
+        "azure", "beige", "bisque", "blush", "brick", "bronze", "bubblegum", "butterscotch", "carmine", "copper",
+        "cream", "emerald", "fawn", "flax", "forest", "fuchsia", "ginger", "golden", "grapefruit", "heliotrope",
+        "honeydew", "jade", "lavender", "lemon", "lichen", "linen", "mahogany", "marigold", "mint", "moss",
+        "mustard", "nectarine", "nutmeg", "olive", "orchid", "papaya", "peach", "pear", "persimmon", "platinum",
+        "pumpkin", "quartz", "raspberry", "rose", "ruby", "sandy", "sangria", "sapphire", "scarlet", "seafoam",
+        "sepia", "sienna", "smoke", "snow", "steel", "straw", "sunset", "tangerine", "taupe", "teal",
+        "terracotta", "thistle", "tomato", "topaz", "turquoise", "umber", "vanilla", "verdant", "vermilion", "violet",
+        "wheat", "wine", "amber", "auburn", "aqua", "beige", "black", "blue", "bronze", "brown",
+        "cerise", "charcoal", "chartreuse", "chestnut", "cinnamon", "claret", "cobalt", "copper", "coral", "crimson",
+        "cyan", "denim", "emerald", "fuchsia", "gold", "gray", "green", "hazel", "indigo", "ivory",
+        "jade", "lavender", "lemon", "lime", "magenta", "maroon", "mint", "mustard", "navy", "olive",
+        "orange", "orchid", "peach", "pear", "periwinkle", "pink", "plum", "powder", "purple", "raspberry",
+        "red", "ruby", "salmon", "sapphire", "scarlet", "seafoam", "silver", "smoke", "snow", "steel",
+        "tan", "teal", "tangerine", "turquoise", "violet", "white", "wine", "yellow"
+      ];
+      
+const drivingWords = [
         // 1-100
         "car", "key", "gas", "oil", "brake", "pedal", "turn", "tire", "road", "gear",
         "lane", "seat", "belt", "horn", "dash", "park", "stop", "steer", "clutch", "cruise",
@@ -417,5 +472,4 @@ var relicsCollection = [
         "view", "vinyl", "visor", "volvo", "water",
         "wheel", "window", "wing", "wire", "wiper", "wiring",
         "wrench",  "yoke",  "zone"
-      ];
-      
+];

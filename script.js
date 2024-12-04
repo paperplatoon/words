@@ -40,7 +40,7 @@ let state = {
 
     currentScreen: 'basic-screen',
 };
-// state.currentRelics = [relicsCollection[21]]
+state.currentRelics = [relicsCollection[21]]
 // Initialize the deck with letters and points
 function initializeDeck() {
     const letters = [
