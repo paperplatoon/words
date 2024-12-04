@@ -68,7 +68,7 @@ function initializeDeck() {
         { letter: 'X', count: 1, points: 8 },
         { letter: 'Y', count: 1, points: 4 },
         { letter: 'Z', count: 1, points: 10 },
-        { letter: '_', count: 2, points: 0 } // Blanks
+        { letter: '_', count: 2, points: 0 } 
     ];
 
     let deck = [];
@@ -924,7 +924,7 @@ function renderRemovingTilesScreen() {
 
 
 function loadDictionary(callback) {
-    fetch('wordlist10k.txt')
+    fetch('words_list.txt')
         .then(response => response.text())
         .then(text => {
             const wordsArray = text.split('\n').map(word => word.trim().toLowerCase());
