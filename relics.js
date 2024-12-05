@@ -6,7 +6,9 @@ var GameEvents = {
     // Add more events as needed
 };
 
-var relicsCollection = [
+var normalRelics = [
+
+        //PERMA-BUFF TILES
         {
             name: "Enchanted Tiles",
             image: "images/enchanted_tiles.png", 
@@ -23,34 +25,6 @@ var relicsCollection = [
                             }
                         }
                     });
-                }
-            }
-        },
-        {
-            name: "Nerd",
-            image: "images/nerd.png",
-            description: function(state) {
-                return "Words with 6 letters or longer get an additional 15 points.";
-            },
-            handlers: {
-                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
-                    if (word.length >= 6) {
-                        state.additionalPoints += 15;
-                    }
-                }
-            }
-        },
-        {
-            name: "Four-Letter Bonus",
-            image: "images/four_letter_bonus.png",
-            description: function(state) {
-                return "Add +3 to the multiplier when the word is exactly 4 letters long.";
-            },
-            handlers: {
-                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
-                    if (wordTiles.length === 4) {
-                        state.additionalMultiplier += 3;
-                    }
                 }
             }
         },
@@ -390,6 +364,10 @@ var relicsCollection = [
     
     ];
 
+console.log(normalRelics.length)
+console.log(wordLengthRelics.length)
+relicsCollection = normalRelics.concat(wordLengthRelics)
+console.log(relicsCollection.length)
 
 
 

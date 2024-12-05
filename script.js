@@ -33,14 +33,14 @@ let state = {
     roundScore: 0,
     currentRelics: [],
     playedWords: {},
-    targetScore: 60,
+    targetScore: 150,
 
     additionalMultiplier: 0,
     additionalStatePoints: 0,
 
     currentScreen: 'basic-screen',
 };
-state.currentRelics = [relicsCollection[21]]
+state.currentRelics = [relicsCollection[25]]
 // Initialize the deck with letters and points
 function initializeDeck() {
     const letters = [
@@ -354,7 +354,7 @@ function calculateWord(wordTiles, validWord) {
     }
 
     let points = wordTiles.reduce((sum, tile) => sum + tile.points + (tile.additionalPoints || 0), 0) + state.additionalStatePoints;
-    let mult = wordTiles.length;
+    let mult = wordTiles.length*2;
 
     mult += state.additionalMultiplier;
 
@@ -390,14 +390,13 @@ function playWord() {
         }
 
         console.log(wordTiles)
+        state.currentWord = [];
+        const tilesNeeded = state.maxHandLength - state.hand.length;
+        state.hand = state.hand.concat(drawTiles(tilesNeeded));
 
         dispatchEvent(GameEvents.ON_WORD_PLAY, wordTiles, validWord);
 
         alert(`Good job, "${validWord}" is a word worth ${wordScore} points!`);
-
-        state.currentWord = [];
-        const tilesNeeded = state.maxHandLength - state.hand.length;
-        state.hand = state.hand.concat(drawTiles(tilesNeeded));
 
         // Check win condition
         if (state.roundScore >= state.targetScore) {
