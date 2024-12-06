@@ -40,7 +40,7 @@ let state = {
 
     currentScreen: 'basic-screen',
 };
-state.currentRelics = [relicsCollection[61], relicsCollection[63]]
+//state.currentRelics = [relicsCollection[61], relicsCollection[63]]
 // Initialize the deck with letters and points
 function initializeDeck() {
     const letters = [
@@ -375,7 +375,7 @@ function playWord() {
         validWord = getValidWordWithWildcards(word);
     }
 
-    if (validWord && state.currentWord.length > 1) { // Ensure word length > 1
+    if (validWord && state.currentWord.length > 1) {
         
         const scoreArray = calculateWord(wordTiles, validWord);
         const wordScore = scoreArray[0] * (scoreArray[1]);
@@ -441,7 +441,7 @@ function nextRoundActual() {
     });
     state.currentScreen = 'basic-screen';
     state.round += 1;
-    state.targetScore += 20;
+    state.targetScore += (40 + (state.round*20));
     state.discardsLeft = state.maxDiscards;
     state.wordsLeft = state.maxWords;
     state.drawsLeft +=1
@@ -811,14 +811,14 @@ function renderRemovingTilesScreen() {
     appDiv.innerHTML = '';
 
     const messageDiv = document.createElement('div');
-    messageDiv.textContent = 'Choose up to 3 tiles to remove from your deck:';
+    messageDiv.textContent = 'Choose up to 4 tiles to remove from your deck:';
     messageDiv.classList.add('message');
     appDiv.appendChild(messageDiv);
 
     // Select 3 random tiles from the permanent deck
     const availableTiles = state.permanentDeck.slice();
     const tilesToShow = [];
-    const numTiles = Math.min(4, availableTiles.length);
+    const numTiles = Math.min(5, availableTiles.length);
     for (let i = 0; i < numTiles; i++) {
         const index = Math.floor(Math.random() * availableTiles.length);
         tilesToShow.push(availableTiles.splice(index, 1)[0]);
@@ -854,7 +854,7 @@ function renderRemovingTilesScreen() {
                 state.selectedTiles = state.selectedTiles.filter(id => id !== tile.id);
                 tileDiv.classList.remove('selected');
             } else {
-                if (state.selectedTiles.length < 3) {
+                if (state.selectedTiles.length < 4) {
                     // Select the tile
                     state.selectedTiles.push(tile.id);
                     tileDiv.classList.add('selected');

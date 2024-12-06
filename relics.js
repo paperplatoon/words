@@ -120,14 +120,15 @@ var normalRelics = [
 
         {
             name: "Alphabet",
-            image: "images/alphabet.png",
-            description: function(state) {
-                return  "Words beginning with A get a +5 multiplier";
+            image: "images/placeholder.png",
+            description: function(state, relic) {
+                return  `Words beginning with A score an extra +${relic.effect} multiplier`;
             },
+            effect: 5,
             handlers: {
                 [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
                     if (word.startsWith('a')) {
-                        state.additionalMultiplier += 5;
+                        state.additionalMultiplier += this.effect;
                     }
                 }
             }
@@ -361,7 +362,7 @@ var normalRelics = [
     
     ];
 
-relicsCollection = normalRelics.concat(wordLengthRelics, singleLetterPermaBuffRelics)
+relicsCollection = normalRelics.concat(wordLengthRelics, singleLetterPermaBuffRelics, singleLetterMultRelics)
 console.log("there are ", relicsCollection.length, " total relics in the game")
 
 
