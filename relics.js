@@ -193,23 +193,23 @@ var normalRelics = [
         },
         {
             name: "Commoner",
-            image: "images/energized_ears.png", // Replace with actual image path
+            image: "images/energized_ears.png",
             description: function(state, relic) {
-                return `Gains +2 additional points for each 'E' played (+${relic.eCount*2})`;
+                return `Permanently gains +${relic.effect} additional points for each 'E' played (+${relic.eCount*relic.effect})`;
             },
+            effect: 1,
             handlers: {
                 [GameEvents.ON_WORD_PLAY]: function(wordTiles, word) {
-                    console.log("handlers", wordTiles)
                     const eCount = wordTiles.filter(tile => tile.letter.toLowerCase() === 'e').length;
                     if (eCount > 0) {
                         this.eCount += eCount;
                     }
                 },
                 [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
-                    state.additionalStatePoints += this.eCount * 2;
+                    state.additionalStatePoints += this.eCount * this.effect;
                 }
             },
-            eCount: 0 // Initialize counter
+            eCount: 0
         },
 
         //16
@@ -223,8 +223,6 @@ var normalRelics = [
             handlers: {
                 [GameEvents.ON_WORD_PLAY]: function(wordTiles, word) {
                     const blankNumbers = wordTiles.filter(tile => tile.letter === '_').length;
-                    console.log(wordTiles)
-                    console.log(blankNumbers)
                     if (blankNumbers > 0) {
                         this.blankCount += blankNumbers;
                     }
@@ -342,7 +340,6 @@ var normalRelics = [
                 [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
                     if (colorWords.includes(word.toLowerCase())) {
                         state.additionalStatePoints += 12;
-                        console.log(`Color Expert: Added +12 points for word "${word}".`);
                     }
                 }
             },
@@ -364,10 +361,8 @@ var normalRelics = [
     
     ];
 
-console.log(normalRelics.length)
-console.log(wordLengthRelics.length)
-relicsCollection = normalRelics.concat(wordLengthRelics)
-console.log(relicsCollection.length)
+relicsCollection = normalRelics.concat(wordLengthRelics, singleLetterPermaBuffRelics)
+console.log("there are ", relicsCollection.length, " total relics in the game")
 
 
 

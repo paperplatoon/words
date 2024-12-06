@@ -40,7 +40,7 @@ let state = {
 
     currentScreen: 'basic-screen',
 };
-state.currentRelics = [relicsCollection[25]]
+state.currentRelics = [relicsCollection[61], relicsCollection[63]]
 // Initialize the deck with letters and points
 function initializeDeck() {
     const letters = [
@@ -389,7 +389,6 @@ function playWord() {
             state.playedWords[validWord] = 1;
         }
 
-        console.log(wordTiles)
         state.currentWord = [];
         const tilesNeeded = state.maxHandLength - state.hand.length;
         state.hand = state.hand.concat(drawTiles(tilesNeeded));
@@ -537,7 +536,6 @@ function renderButtonsDiv() {
 }
 
 function renderRelicsDiv() {
-    console.log("state current relics is ", state.currentRelics)
     if (state.currentRelics.length === 0) {
         return document.createElement('div'); // Return an empty div if no relics
     }
