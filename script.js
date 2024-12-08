@@ -23,7 +23,8 @@ let state = {
 
     maxWords: 3,
     wordsLeft: 3,
-    maxHandLength: 7,
+    startingHandSize: 7,
+    maxHandSize: 10,
     
     drawsLeft: 2,
     maxDraws: 2,
@@ -125,9 +126,12 @@ function shuffleHand() {
 function drawTiles(num) {
     const drawnTiles = [];
     for (let i = 0; i < num && state.roundDeck.length > 0; i++) {
-        drawnTiles.push(state.roundDeck.pop());
+        if (state.hand.length < state.maxHandSize) {
+            drawnTiles.push(state.roundDeck.pop());
+        }
     }
     return drawnTiles;
+    
 }
 
 function drawThreeTiles() {
@@ -136,7 +140,7 @@ function drawThreeTiles() {
         drawnTiles.push(state.roundDeck.pop());
     }
 
-    if (state.drawsLeft > 0) {
+    if (state.drawsLeft > 0 && state.hand.length < state.maxHandSize) {
         state.drawsLeft -= 1;
     }
     state.hand = state.hand.concat(drawnTiles);
@@ -390,7 +394,7 @@ function playWord() {
         }
 
         state.currentWord = [];
-        const tilesNeeded = state.maxHandLength - state.hand.length;
+        const tilesNeeded = state.startingHandSize - state.hand.length;
         state.hand = state.hand.concat(drawTiles(tilesNeeded));
 
         dispatchEvent(GameEvents.ON_WORD_PLAY, wordTiles, validWord);
@@ -447,7 +451,7 @@ function nextRoundActual() {
     state.drawsLeft +=1
     state.roundScore = 0;
     state.roundDeck = shuffle([...state.permanentDeck]);
-    state.hand = drawTiles(state.maxHandLength);
+    state.hand = drawTiles(state.startingHandSize);
     state.currentWord = [];
 
     renderCurrentScreen();
@@ -522,7 +526,7 @@ function renderButtonsDiv() {
     drawButton.classList.add('default-button');
     drawButton.textContent = 'Draw ' + state.numTilesDrawn + ' tiles';
     drawButton.addEventListener('click', drawThreeTiles);
-    if (state.drawsLeft > 0) {
+    if (state.drawsLeft > 0 && state.hand.length < state.hand.maxHandSize) {
         buttonsDiv.append(drawButton)
     }
 
@@ -930,7 +934,7 @@ function init() {
     state.deck = newDeck;
     state.roundDeck = [...newDeck];
     state.permanentDeck = [...newDeck];
-    state.hand = drawTiles(state.maxHandLength);
+    state.hand = drawTiles(state.startingHandSize);
     state.dictionary = new Set(wordsArray.map(word => word.toLowerCase())),
     state.currentWord = [];
     state.score = 0;
