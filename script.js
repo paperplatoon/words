@@ -33,7 +33,7 @@ let state = {
     roundScore: 0,
     currentRelics: [],
     playedWords: {},
-    targetScore: 150,
+    targetScore: 120,
 
     additionalMultiplier: 0,
     additionalStatePoints: 0,
@@ -50,7 +50,7 @@ function initializeDeck() {
         { letter: 'D', count: 1, points: 2 },
         { letter: 'E', count: 4, points: 1 },
         { letter: 'F', count: 1, points: 4 },
-        { letter: 'G', count: 2, points: 2 },
+        { letter: 'G', count: 2, points: 3 },
         { letter: 'H', count: 1, points: 4 },
         { letter: 'I', count: 3, points: 1 },
         { letter: 'J', count: 1, points: 8 },
@@ -441,7 +441,7 @@ function nextRoundActual() {
     });
     state.currentScreen = 'basic-screen';
     state.round += 1;
-    state.targetScore += (40 + (state.round*20));
+    state.targetScore += (30 + (state.round*10));
     state.discardsLeft = state.maxDiscards;
     state.wordsLeft = state.maxWords;
     state.drawsLeft +=1

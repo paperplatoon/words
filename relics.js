@@ -362,7 +362,8 @@ var normalRelics = [
     
     ];
 
-relicsCollection = normalRelics.concat(wordLengthRelics, singleLetterPermaBuffRelics, singleLetterMultRelics)
+relicsCollection = normalRelics.concat(wordLengthRelics, singleLetterPermaBuffRelics, 
+    singleLetterMultRelics, secondLetterPoints, thirdLetterPoints, secondConsonantPairsPoints, vowelConsonantPairsPoints)
 console.log("there are ", relicsCollection.length, " total relics in the game")
 
 
