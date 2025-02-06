@@ -21,8 +21,8 @@ let state = {
     discardsLeft: 3,
     maxDiscards: 3,
 
-    maxWords: 3,
-    wordsLeft: 3,
+    maxWords: 4,
+    wordsLeft: 4,
     startingHandSize: 7,
     maxHandSize: 10,
     
@@ -41,12 +41,11 @@ let state = {
 
     currentScreen: 'basic-screen',
 };
-//state.currentRelics = [relicsCollection[61], relicsCollection[63]]
+//state.currentRelics = [relicsCollection[15], relicsCollection[24]]
 // Initialize the deck with letters and points
 function initializeDeck() {
     const letters = [
         { letter: 'A', count: 4, points: 1 },
-        { letter: 'B', count: 1, points: 3 },
         { letter: 'C', count: 1, points: 3 },
         { letter: 'D', count: 1, points: 2 },
         { letter: 'E', count: 4, points: 1 },
@@ -54,7 +53,6 @@ function initializeDeck() {
         { letter: 'G', count: 2, points: 3 },
         { letter: 'H', count: 1, points: 4 },
         { letter: 'I', count: 3, points: 1 },
-        { letter: 'J', count: 1, points: 8 },
         { letter: 'K', count: 1, points: 5 },
         { letter: 'L', count: 2, points: 1 },
         { letter: 'M', count: 1, points: 3 },
@@ -65,11 +63,7 @@ function initializeDeck() {
         { letter: 'S', count: 2, points: 1 },
         { letter: 'T', count: 2, points: 1 },
         { letter: 'U', count: 2, points: 1 },
-        { letter: 'V', count: 1, points: 4 },
         { letter: 'W', count: 1, points: 4 },
-        { letter: 'X', count: 1, points: 8 },
-        { letter: 'Y', count: 1, points: 4 },
-        { letter: 'Z', count: 1, points: 10 },
         { letter: '_', count: 2, points: 0 } 
     ];
 
@@ -287,12 +281,43 @@ function renderHandDiv() {
 
 function renderCurrentWord() {
     const currentWordDiv = document.createElement('div');
-    currentWordDiv.id = "current-word"
-    state.currentWord.forEach(tile => {
+    currentWordDiv.id = "current-word";
+
+    // Add empty outlines for first 4 positions
+    for (let i = 0; i < 4; i++) {
+        const emptySlot = document.createElement('div');
+        emptySlot.classList.add('tile', 'tile-outline');
+        // If this is the multiplier square, add indicator
+        if (i === state.multiplierSquare - 1) {
+            emptySlot.classList.add('multiplier-square');
+            const multiplierIndicator = document.createElement('div');
+            multiplierIndicator.classList.add('multiplier-indicator');
+            multiplierIndicator.textContent = `×${state.multiplierSquare}`;
+            emptySlot.appendChild(multiplierIndicator);
+        }
+        currentWordDiv.appendChild(emptySlot);
+    }
+
+    // Add actual tiles over the outlines
+    state.currentWord.forEach((tile, index) => {
         const tileDiv = createTile(tile, 'currentWord');
-        currentWordDiv.appendChild(tileDiv);
+        // If this is the multiplier square, add special styling and indicator
+        if (index === state.multiplierSquare - 1) {
+            tileDiv.classList.add('multiplier-square');
+            const multiplierIndicator = document.createElement('div');
+            multiplierIndicator.classList.add('multiplier-indicator');
+            multiplierIndicator.textContent = `×${state.multiplierSquare}`;
+            tileDiv.appendChild(multiplierIndicator);
+        }
+        // Replace the outline at this position
+        if (index < 4) {
+            currentWordDiv.replaceChild(tileDiv, currentWordDiv.children[index]);
+        } else {
+            currentWordDiv.appendChild(tileDiv);
+        }
     });
-    return currentWordDiv
+
+    return currentWordDiv;
 }
 
 function getValidWordWithWildcards(word) {
@@ -358,6 +383,12 @@ function calculateWord(wordTiles, validWord) {
     }
 
     let points = wordTiles.reduce((sum, tile) => sum + tile.points + (tile.additionalPoints || 0), 0) + state.additionalStatePoints;
+
+    
+    if (validWord.length >= state.multiplierSquare) {
+        //to make sure you don't double-count; ensures eg 4th square adds x3 EXTRA points
+        points += wordTiles[state.multiplierSquare-1].points * (state.multiplierSquare-1)
+    }
     let mult = wordTiles.length*2;
 
     mult += state.additionalMultiplier;
@@ -403,7 +434,9 @@ function playWord() {
 
         // Check win condition
         if (state.roundScore >= state.targetScore) {
-            alert(`Congratulations! You've reached the target score of ${state.targetScore} points.`);
+            dispatchEvent(GameEvents.ON_ROUND_END);
+            alert(`Congratulations! You finished the round with ${state.wordsLeft} word${state.wordsLeft !== 1 ? 's' : ''} remaining! You'll be able to remove ${state.wordsLeft} tile${state.wordsLeft !== 1 ? 's' : ''} from your deck.`);
+            
             if (state.round % 2 == 1) {
                 chooseRelic();
             } else {
@@ -454,6 +487,8 @@ function nextRoundActual() {
     state.hand = drawTiles(state.startingHandSize);
     state.currentWord = [];
 
+    state.multiplierSquare = 1 + Math.floor(Math.random() * 3);
+
     renderCurrentScreen();
 }
 
@@ -481,11 +516,18 @@ function renderStatsDiv() {
     const roundScoreDiv = createTextDiv("Round Score: " + state.roundScore + "/" + state.targetScore, 'stats-div')
     const wordsDiv = createTextDiv(state.wordsLeft + " Words left", 'stats-div')
     const discardsDiv = createTextDiv(state.discardsLeft + " Discards left", 'stats-div')
-    const drawsDiv = createTextDiv(state.drawsLeft + " Draws left", 'stats-div')
+    // const drawsDiv = createTextDiv(state.drawsLeft + " Draws left", 'stats-div')
+    let followString = "th"
+    if (state.multiplierSquare == 2) {
+        followString = "nd"
+    } else if (state.multiplierSquare == 3) {
+        followString = "rd"
+    }
+    const multDiv = createTextDiv(state.multiplierSquare + followString + " letter scores x" + state.multiplierSquare + " points", 'stats-div')
     const tilesDiv = createTextDiv("Tiles left: " + state.roundDeck.length + "/" + state.permanentDeck.length, 'stats-div')
 
     topRowDiv.append(roundDiv, totalScoreDiv, roundScoreDiv)
-    bottomRowDiv.append(wordsDiv, discardsDiv, drawsDiv, tilesDiv)
+    bottomRowDiv.append(wordsDiv, discardsDiv, multDiv, tilesDiv)
 
     let currentWordDiv;
 
@@ -580,7 +622,7 @@ function renderRelicsDiv() {
         relicDescription.style.fontSize = '12px';
         relicDescription.style.color = '#555';
 
-        relicDiv.appendChild(relicImage);
+        //relicDiv.appendChild(relicImage);
         relicDiv.appendChild(relicName);
         relicDiv.appendChild(relicDescription);
 
@@ -621,6 +663,9 @@ function renderCurrentScreen() {
 function renderChoosingNewTileScreen() {
     const appDiv = document.getElementById('app');
     appDiv.innerHTML = '';
+
+    const relicsDiv = renderRelicsDiv()
+    appDiv.appendChild(relicsDiv);
 
     const messageDiv = document.createElement('div');
     messageDiv.textContent = 'Choose a new tile to add to your deck or skip to the next round:';
@@ -721,6 +766,10 @@ function renderChoosingNewTileScreen() {
 function renderChoosingNewRelicScreen() {
     const appDiv = document.getElementById('app');
     appDiv.innerHTML = '';
+    
+    const existingRelicsDiv = renderRelicsDiv()
+    appDiv.appendChild(existingRelicsDiv);
+
 
     const messageDiv = document.createElement('div');
     messageDiv.textContent = 'Choose a relic to add to your collection or skip to the next round:';
@@ -777,7 +826,7 @@ function renderChoosingNewRelicScreen() {
         relicDescription.style.fontSize = '12px';
         relicDescription.style.color = '#555';
 
-        relicDiv.appendChild(relicImage);
+        //relicDiv.appendChild(relicImage);
         relicDiv.appendChild(relicName);
         relicDiv.appendChild(relicDescription);
 
@@ -814,12 +863,16 @@ function renderRemovingTilesScreen() {
     const appDiv = document.getElementById('app');
     appDiv.innerHTML = '';
 
+    const existingRelicsDiv = renderRelicsDiv()
+    appDiv.appendChild(existingRelicsDiv);
+
     const messageDiv = document.createElement('div');
-    messageDiv.textContent = 'Choose up to 4 tiles to remove from your deck:';
+    const maxRemovableTiles = state.wordsLeft;
+    messageDiv.textContent = `You finished the last round with ${maxRemovableTiles} words left! You may choose up to ${maxRemovableTiles} tile${maxRemovableTiles !== 1 ? 's' : ''} to remove from your deck`;
     messageDiv.classList.add('message');
     appDiv.appendChild(messageDiv);
 
-    // Select 3 random tiles from the permanent deck
+    // Select random tiles from the permanent deck
     const availableTiles = state.permanentDeck.slice();
     const tilesToShow = [];
     const numTiles = Math.min(5, availableTiles.length);
@@ -858,7 +911,7 @@ function renderRemovingTilesScreen() {
                 state.selectedTiles = state.selectedTiles.filter(id => id !== tile.id);
                 tileDiv.classList.remove('selected');
             } else {
-                if (state.selectedTiles.length < 4) {
+                if (state.selectedTiles.length < maxRemovableTiles) {
                     // Select the tile
                     state.selectedTiles.push(tile.id);
                     tileDiv.classList.add('selected');
@@ -932,6 +985,8 @@ function init() {
 
     newDeck = initializeDeck()
     state.deck = newDeck;
+    state.currentRelics = [];
+    state.targetScore = 120;
     state.roundDeck = [...newDeck];
     state.permanentDeck = [...newDeck];
     state.hand = drawTiles(state.startingHandSize);
@@ -945,6 +1000,8 @@ function init() {
     state.playedWords = {}
     state.round = 1;
     state.currentScreen = 'basic-screen';
+
+    state.multiplierSquare = 2 + Math.floor(Math.random() * 2);;
 
     renderBasicScreen();
 }
@@ -1037,4 +1094,33 @@ window.onload = init;
 //     { letter: 'Y', count: 1, points: 4 },
 //     { letter: 'Z', count: 1, points: 10 },
 //     { letter: '_', count: 2, points: 0 } // Blanks
+// ];
+
+// const letters = [
+//         { letter: 'A', count: 4, points: 1 },
+//         { letter: 'B', count: 1, points: 3 },
+//         { letter: 'C', count: 1, points: 3 },
+//         { letter: 'D', count: 1, points: 2 },
+//         { letter: 'E', count: 4, points: 1 },
+//         { letter: 'F', count: 1, points: 4 },
+//         { letter: 'G', count: 2, points: 3 },
+//         { letter: 'H', count: 1, points: 4 },
+//         { letter: 'I', count: 3, points: 1 },
+//         { letter: 'J', count: 1, points: 8 },
+//         { letter: 'K', count: 1, points: 5 },
+//         { letter: 'L', count: 2, points: 1 },
+//         { letter: 'M', count: 1, points: 3 },
+//         { letter: 'N', count: 2, points: 1 },
+//         { letter: 'O', count: 3, points: 1 },
+//         { letter: 'P', count: 1, points: 3 },
+//         { letter: 'R', count: 2, points: 1 },
+//         { letter: 'S', count: 2, points: 1 },
+//         { letter: 'T', count: 2, points: 1 },
+//         { letter: 'U', count: 2, points: 1 },
+//         { letter: 'V', count: 1, points: 4 },
+//         { letter: 'W', count: 1, points: 4 },
+//         { letter: 'X', count: 1, points: 8 },
+//         { letter: 'Y', count: 1, points: 4 },
+//         { letter: 'Z', count: 1, points: 10 },
+//         { letter: '_', count: 2, points: 0 } 
 // ];

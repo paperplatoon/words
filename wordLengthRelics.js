@@ -22,9 +22,9 @@ wordLengthRelics = [
         name: "Briefs",
         image: "images/energized_ears.png", // Replace with actual image path
         description: function(state, relic) {
-            return `Permanently gains +${relic.effect} points for each two-letter word played (+${relic.eCount*relic.effect})`;
+            return `Permanently gains +${relic.effect} mult for each two-letter word played (+${relic.eCount*relic.effect})`;
         },
-        effect: 2,
+        effect: 1,
         handlers: {
             [GameEvents.ON_WORD_PLAY]: function(wordTiles, word) {
                 console.log("handlers", wordTiles)
@@ -34,10 +34,30 @@ wordLengthRelics = [
                 }
             },
             [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
-                state.additionalStatePoints += this.eCount * this.effect;
+                state.additionalMultiplier += this.eCount * this.effect;
             }
         },
         eCount: 0 // Initialize counter
+    },
+
+    {
+        name: "Short Words",
+        image: "images/energized_ears.png",
+        description: function(state, relic) {
+            return `Permanently gains +${relic.effect} points for each word shorter than 4 letters played (+${relic.eCount*relic.effect})`;
+        },
+        effect: 2,
+        handlers: {
+            [GameEvents.ON_WORD_PLAY]: function(wordTiles, word) {
+                if (wordTiles.length < 4) {
+                    this.eCount += 1;
+                }
+            },
+            [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                state.additionalStatePoints += this.eCount * this.effect;
+            }
+        },
+        eCount: 0
     },
 
     {

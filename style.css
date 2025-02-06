@@ -277,4 +277,44 @@
     color: #fff;
 }
 
+.green-background {
+    background-color: green;
+    color: white;
+    position: relative;
+    width: 60px;
+    height: 60px;
+    border: 2px solid #000;
+    border-radius: 5px;
+    margin: 0 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.tile-outline {
+    background-color: transparent;
+    border: 2px dashed #ccc;
+    opacity: 0.5;
+}
+
+.multiplier-square {
+    background-color: #90EE90; /* Light green background */
+    position: relative;
+}
+
+.multiplier-indicator {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #006400; /* Dark green text */
+    background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+    padding: 1px 3px;
+    border-radius: 3px;
+    pointer-events: none; /* Ensures it doesn't interfere with tile clicking */
+}
+
 

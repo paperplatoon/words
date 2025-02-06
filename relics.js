@@ -3,7 +3,7 @@ var GameEvents = {
     ON_DISCARD: 'onDiscard',
     ON_CALCULATE_WORD: 'onCalculateWord',
     ON_RELIC_ACQUIRED: 'onRelicAcquired',
-    // Add more events as needed
+    ON_ROUND_END: 'onRoundEnd',   
 };
 
 var normalRelics = [
@@ -32,7 +32,7 @@ var normalRelics = [
             name: "Sea's Blessing",
             image: "images/seas_blessing.png",
             description: function(state) {
-                return "Add +6 to the multiplier if the word contains 'sea'.";
+                return "Add +10 to the multiplier if the word contains 'sea'.";
             },
             handlers: {
                 [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word, context) {
@@ -66,11 +66,11 @@ var normalRelics = [
             name: "Unique Contributor",
             image: "images/unique_contributor.png",
             description: function(state, relic) {
-                return `Gain +1 point for each unique word played (+${relic.uniqueWordCount})`;
+                return `Gain +1 point for every second unique word played (+${relic.uniqueWordCount})`;
             },
             handlers: {
                 [GameEvents.ON_WORD_PLAY]: function(wordTiles, word) {
-                    if (!state.playedWords[word]) {
+                    if (!state.playedWords[word] && state.playedWords.length/2 % 1 ) {
                         state.playedWords[word] = 1;
                         this.uniqueWordCount += 1;
                     }
@@ -168,7 +168,7 @@ var normalRelics = [
             name: "Watching Eyes",
             image: "images/watching_eyes.png", // Replace with actual image path
             description: function(state, relic) {
-                return "Words with double 'o' (like 'look') get +13 multiplier.";
+                return "Words with a double 'o' get +13 multiplier.";
             },
             handlers: {
                 [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
@@ -239,7 +239,7 @@ var normalRelics = [
             name: "The Breach",
             image: "images/the_breach.png", // Ensure this image exists in your images directory
             description: function(state, relic) {
-                return "Gives +5 multiplier if the second letter of the word is 'N'.";
+                return "Gives +8 multiplier if the second letter of the word is 'N'.";
             },
             handlers: {
                 [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
@@ -320,7 +320,7 @@ var normalRelics = [
             name: "Neo",
             image: "images/watching_eyes.png", // Replace with actual image path
             description: function(state) {
-                return "Words containing a 'one' get +14 multiplier.";
+                return "Words containing 'one' get +14 multiplier.";
             },
             handlers: {
                 [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
@@ -346,24 +346,50 @@ var normalRelics = [
             },
         },
         {
-            name: "Driving Force",
-            image: "images/driving_force.png", // Replace with actual image path
-            description: function(state) {
-                return "Gives +20 points if your word relates to driving a card";
+            name: "High Value Hunter",
+            image: "images/energized_ears.png",
+            description: function(state, relic) {
+                return `Permanently gains +${relic.effect} points for each high-value tile (5+ points) discarded (+${relic.eCount*relic.effect})`;
             },
+            effect: 2,
             handlers: {
-                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
-                    if (drivingWords && drivingWords.includes(word.toLowerCase())) {
-                        state.additionalStatePoints += 20;
+                [GameEvents.ON_DISCARD]: function(discardedTiles) {
+                    const highValueTiles = discardedTiles.filter(tile => tile.points >= 5).length;
+                    if (highValueTiles > 0) {
+                        this.eCount += highValueTiles;
                     }
+                },
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                    state.additionalStatePoints += this.eCount * this.effect;
                 }
-            }
+            },
+            eCount: 0
         },
+
+        {
+            name: "Careful Curator",
+            image: "images/energized_ears.png",
+            description: function(state, relic) {
+                return `At the end of each round, permanently gains +${relic.effect} points for each unused discard (+${relic.eCount*relic.effect})`;
+            },
+            effect: 2,
+            handlers: {
+                [GameEvents.ON_ROUND_END]: function() {
+                    this.eCount += state.discardsLeft;
+                },
+                [GameEvents.ON_CALCULATE_WORD]: function(wordTiles, word) {
+                    state.additionalStatePoints += this.eCount * this.effect;
+                }
+            },
+            eCount: 0
+        }
+
+
     
     ];
 
-relicsCollection = normalRelics.concat(wordLengthRelics, singleLetterPermaBuffRelics, 
-    singleLetterMultRelics, secondLetterPoints, thirdLetterPoints, secondConsonantPairsPoints, vowelConsonantPairsPoints)
+relicsCollection = normalRelics.concat(wordLengthRelics, singleLetterPermaBuffRelics, )
+
 console.log("there are ", relicsCollection.length, " total relics in the game")
 
 
@@ -410,41 +436,3 @@ console.log("there are ", relicsCollection.length, " total relics in the game")
         "red", "ruby", "salmon", "sapphire", "scarlet", "seafoam", "silver", "smoke", "snow", "steel",
         "tan", "teal", "tangerine", "turquoise", "violet", "white", "wine", "yellow"
       ];
-      
-const drivingWords = [
-        // 1-100
-        "car", "key", "gas", "oil", "brake", "pedal", "turn", "tire", "road", "gear",
-        "lane", "seat", "belt", "horn", "dash", "park", "stop", "steer", "clutch", "cruise",
-        "drive", "speed", "wheel", "mile", "light", "route", "truck", "motor", "tank", "gauge",
-        "shift", "start", "trunk", "axle", "sedan", "wagon", "van", "ride", "bump", "jerk",
-        "drift", "merge", "yield", "curve", "plow", "rev", "race", "spin", "burn", "roll",
-        "back", "drag", "tow", "haul", "map", "trip", "pit", "loop", "zoom", "zip",
-        "fuel", "cool", "fan", "bolt", "cap", "jump", "leak", "lock", "load", "lug",
-        "vent", "hood", "roof", "tool", "muff", "grip", "auto", "used", "coil",
-      
-        // Additional words
-        "airbag", "alarm", "antenna", "armrest", "axle", "battery", "belt", "blind", "blinker",
-        "body", "bonnet", "boost", "bulb", "bumper", "cable", "cam", "cargo",
-        "clamp", "clip", "clock", "coil", "column", "compass", "cone", "control", "coolant",
-        "crank", "crash", "defrost", "dial", "digital", "door", "drain", "driver", "driving",
-        "dual", "dump", "engine", "entry", "exhaust", "fanbelt", "fender", "funnel",
-        "fuse",  "gearbox", "glass", "grille", "ground", "grommet", "guard", "guide",
-        "handle", "hatch", "heater", "helmet", "hinge", "hook", "horn", "hose",
-        "hub", "hybrid", "jack", "knob", "lever", "license", "lift", "limp", "link", "loader",
-        "lug", "marker", "mat", "mirror", "mount", "mud", "muffler", "needle", "neutral",
-        "oilpan", "onboard", "oxygen", "parking", "parkway", "piston", "plate",
-        "plug", "pointer", "polish", "port", "post", "power", "pull", "pump", "push", "quarter",
-        "rack", "radar", "rain", "range", "ramp", "rattle", "rear", "relay", "release", "remote",
-        "repair", "reserve", "reset", "reverse", "rider", "ring", "runner",
-        "scan", "scoop", "screw", "seat", "seal", "semi", "sensor", "shackle",
-        "shaft", "shake", "shell", "shift",
-        "signal", "siphon", "siren", "skid", "slot",
-        "smoke", "snow", "socket", "spindle", "spinner", "split", "spool", "sport", "spring",
-        "stall", "standby", "stick", "strap", "street", "stroke", "stud", "stub",
-        "sunroof", "suspend", "switch", "system",
-        "tank", "tap", "tar", "taxi", "teeth", "terrain", "timing", "tire",
-        "tunnel", "turbo", "tyre","upshift", "valve", "vent",
-        "view", "vinyl", "visor", "volvo", "water",
-        "wheel", "window", "wing", "wire", "wiper", "wiring",
-        "wrench",  "yoke",  "zone"
-];
